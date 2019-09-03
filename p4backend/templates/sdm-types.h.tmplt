@@ -46,6 +46,10 @@
 
 
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 /**
  * \brief IPv4 or IPv6 address.
  */
@@ -137,6 +141,9 @@ typedef struct nsf_record {
     uint32_t timestamp_sec; //!< Seconds part of first captured packet timestamp.
 } __attribute__((__packed__)) nsf_record;
 
+#if defined (__cplusplus)
+}
+#endif
 
 
 #endif

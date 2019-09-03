@@ -81,25 +81,6 @@ class flowRecord {
 
 };
 
-
-
-/**
- * \brief Format of NDP header of data received from NSF firmware.
- */
-typedef struct {
-    uint8_t  interface : 4; //!< Interface number on which the data was captured.
-    uint8_t  dma_channel : 4; //!< DMA channel.
-    uint8_t  crc_hash : 4; //!< Precomputed CRC hash (4 bits).
-    uint8_t  data_type : 4; //!< Format of data that follow this header.
-    uint16_t frame_size; //!< Size of captured frame.
-    uint32_t timestamp_nsec; //!< Nanoseconds part of capture timestamp.
-    uint32_t timestamp_sec; //!< Seconds part of capture timestamp.
-} __attribute__((__packed__)) nsf_ndphdr;
-
-#define NDPHDR_DATA_TYPE_FRAME 0 //!< Format of data captured from NSF firmware: full network packet.
-#define NDPHDR_DATA_TYPE_UH    1 //!< Format of data captured from NSF firmware: Unified Header - data extracted from a single packet.
-#define NDPHDR_DATA_TYPE_FLOW  2 //!< Format of data captured from NSF firmware: NetFlow record - data aggregated in firmware from packets of one flow.
-
 inline int flowRecord::from_nsf(struct ndp_packet &packet/*, statCounters &cnts*/) {
     nsf_ndphdr *ndphdr; // NDP frame header
     ndphdr = (nsf_ndphdr *) packet.header;
@@ -140,23 +121,6 @@ inline int flowRecord::from_nsf(struct ndp_packet &packet/*, statCounters &cnts*
     return ndphdr->data_type;
 }
 
-
-
-/**
- * \brief Format of Unified Header received from NSF firmware.
- */
-typedef struct {
-    ip_addr l3_srcaddr; //!< Source IPv4 or IPv6 address.
-    ip_addr l3_dstaddr; //!< Destination IPv4 or IPv6 address.
-    uint32_t flow_octets; //!< Size of packet or frame in bytes (lower 32 bits).
-    uint8_t flow_octets_high; //!< Size of packet or frame in bytes (highest 8 bits).
-    uint8_t l3_protocol; //!< Layer 3 protocol identification (version of IP).
-    uint8_t l4_protocol; //!< Layer 4 protocol number.
-    uint8_t l4_tcpflags; //!< TCP flags.
-    uint16_t l4_srcport; //!< Source UDP/TCP port number.
-    uint16_t l4_dstport; //!< Destination UDP/TCP port number.
-} __attribute__((__packed__)) nsf_header;
-
 __always_inline void flowRecord::parse_uh(unsigned char *d, unsigned) {
     nsf_header *h = (nsf_header *)d;
     memcpy(key.sip.addr8, h->l3_srcaddr.addr8, 16);
@@ -170,28 +134,6 @@ __always_inline void flowRecord::parse_uh(unsigned char *d, unsigned) {
         key.dport = h->l4_dstport;
     }
 }
-
-
-
-/**
- * \brief Format of flow record received from NSF firmware.
- *
- * Note that first fields are the same as in the format of Unified Header, only last 3 fields are added here.
- */
-typedef struct {
-    ip_addr l3_srcaddr; //!< Source IPv4 or IPv6 address.
-    ip_addr l3_dstaddr; //!< Destination IPv4 or IPv6 address.
-    uint32_t flow_octets; //!< Total size of packets or frames in bytes (lower 32 bits).
-    uint8_t flow_octets_high; //!< Total size of packets or frames in bytes (highest 8 bits).
-    uint8_t l3_protocol; //!< Layer 3 protocol identification (version of IP).
-    uint8_t l4_protocol; //!< Layer 4 protocol number.
-    uint8_t l4_tcpflags; //!< TCP flags (aggregated by logical OR).
-    uint16_t l4_srcport; //!< Source UDP/TCP port number.
-    uint16_t l4_dstport; //!< Destination UDP/TCP port number.
-    uint32_t flow_packets; //!< Number of packets or frames aggregated in the record.
-    uint32_t timestamp_nsec; //!< Nanoseconds part of first captured packet timestamp.
-    uint32_t timestamp_sec; //!< Seconds part of first captured packet timestamp.
-} __attribute__((__packed__)) nsf_record;
 
 __always_inline void flowRecord::parse_flow(unsigned char *d, unsigned) {
     nsf_record *h = (nsf_record *)d;
@@ -209,8 +151,5 @@ __always_inline void flowRecord::parse_flow(unsigned char *d, unsigned) {
     data.stime_nsec = le32toh(h->timestamp_nsec);
     data.stime_sec = le32toh(h->timestamp_sec);
 }
-
-
-
 
 #endif
