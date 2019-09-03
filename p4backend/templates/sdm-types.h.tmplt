@@ -49,7 +49,7 @@
 /**
  * \brief IPv4 or IPv6 address.
  */
-typedef union {
+typedef union ip_addr {
     uint8_t addr8[16]; //!< IP address data as array of bytes.
     uint16_t addr16[8]; //!< IP address data as array of two-byte values.
     uint32_t addr32[4]; //!< IP address data as array of four-byte values.
@@ -60,7 +60,7 @@ typedef union {
 /**
          * \brief Flow record identification fields.
          */
-typedef struct {
+typedef struct flowKey{
     ip_addr sip; //!< Source IPv4 or IPv6 address.
     ip_addr dip; //!< Destination IPv4 or IPv6 address.
     uint16_t sport; //!< Source UDP/TCP port number.
@@ -73,7 +73,7 @@ typedef struct {
 /**
          * \brief Flow record aggregated data fields.
          */
-typedef struct {
+typedef struct flowData{
     uint64_t bytes; //!< Counter of flow bytes.
     uint64_t packets; //!< Counter of flow packets.
     uint32_t stime_nsec; //!< Start of flow timestamp - nanoseconds part.
@@ -86,7 +86,7 @@ typedef struct {
 /**
  * \brief Format of NDP header of data received from NSF firmware.
  */
-typedef struct {
+typedef struct nsf_ndphdr {
     uint8_t  interface : 4; //!< Interface number on which the data was captured.
     uint8_t  dma_channel : 4; //!< DMA channel.
     uint8_t  crc_hash : 4; //!< Precomputed CRC hash (4 bits).
@@ -105,7 +105,7 @@ typedef struct {
 /**
  * \brief Format of Unified Header received from NSF firmware.
  */
-typedef struct {
+typedef struct nsf_header {
     ip_addr l3_srcaddr; //!< Source IPv4 or IPv6 address.
     ip_addr l3_dstaddr; //!< Destination IPv4 or IPv6 address.
     uint32_t flow_octets; //!< Size of packet or frame in bytes (lower 32 bits).
@@ -122,7 +122,7 @@ typedef struct {
  *
  * Note that first fields are the same as in the format of Unified Header, only last 3 fields are added here.
  */
-typedef struct {
+typedef struct nsf_record {
     ip_addr l3_srcaddr; //!< Source IPv4 or IPv6 address.
     ip_addr l3_dstaddr; //!< Destination IPv4 or IPv6 address.
     uint32_t flow_octets; //!< Total size of packets or frames in bytes (lower 32 bits).
