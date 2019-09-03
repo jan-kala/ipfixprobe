@@ -49,6 +49,7 @@ extern "C" {
 
 struct cacherec_s {
    uint64_t hash;
+   uint32_t offload; // offloaded to nsf? 0 - false, 1 - true
    struct flowrec_s *flow;
 };
 

@@ -265,6 +265,12 @@ void cache_add_packet(struct flowcache_s *cache, struct packet_hdr_s *packet, st
       cache->last_time = time;
    }
 
+   // TODO: simple offload of flow to card if X packets arrived and no extension was added (not one of the plugins processed the payload)
+   // There is a probability, that there is no plugin capable of parsing that payload, there should be some testing done with the constant
+   if (rec->flow != NULL && rec->flow->ext == NULL && rec->flow->packets > 5) {
+      cache_offload_nsf(cache, rec, 1);
+   }
+
    if (next_flow != NULL) {
       cache_add_packet(cache, next_flow, time, hash, packet_bytes, packet_len);
    }
@@ -377,38 +383,107 @@ int cache_init_nsf(struct flowcache_s *cache, nsf_access_t access, int context)
     cache->nsf_context = context;
 }
 
+typedef struct __attribute__((packed)) flow_key_v4_s {
+   uint8_t ip_version;
+   uint32_t src_ip;
+   uint32_t dst_ip;
+   uint8_t proto;
+   uint16_t src_port;
+   uint16_t dst_port;
+} flow_key_v4_t;
+
+typedef struct __attribute__((packed)) flow_key_v6_s {
+   uint8_t ip_version;
+   uint8_t src_ip[16];
+   uint8_t dst_ip[16];
+   uint8_t proto;
+   uint16_t src_port;
+   uint16_t dst_port;
+} flow_key_v6_t;
+
 void cache_add_nsf(struct flowcache_s *cache, struct flowKey *key, struct flowData *data)
 {
-    //TODO: update cache with record.
+   uint8_t keybuf[sizeof(struct flow_key_v6_s)];
+
+   // Compute flow key
+   if (key->ipver == 4) {
+      struct flow_key_v4_s *k4 = (struct flow_key_v4_s *) keybuf;
+
+      k4->ip_version = 4;
+      k4->src_ip = key->sip.addr32[0]; // TODO: which of the key->addr32[*] is the correct one?
+      k4->dst_ip = key->dip.addr32[0]; // TODO
+      k4->proto = key->proto;
+      k4->src_port = key->sport;
+      k4->dst_port = key->dport;
+
+      key_len = sizeof(struct flow_key_v4_s);
+   } else {
+      struct flow_key_v6_s *k6 = (struct flow_key_v6_s *) keybuf;
+
+      k6->ip_version = 6;
+      memcpy(k6->src_ip, key->sip);
+      memcpy(k6->dst_ip, key->dip);
+      k6->proto = key->proto;
+      k6->src_port = key->sport;
+      k6->dst_port = key->dport;
+
+      key_len = sizeof(struct flow_key_v6_s);
+   }
+
+   uint64_t hash = XXH64(keybuf, key_len, 0);
+
+   uint32_t flow_index = cache_find_flow(cache, hash);
+   struct cacherec_s *rec = cache->cache[flow_index];
+
+   if (rec->hash == 0 || rec->flow == NULL) {
+      // TODO: raise error, sanity check failed (invalid ipv4 key computed or invalid protocol in ipv6 flow (ipv6 extensions were not processed correctly) )
+      return;
+   }
+
+   // Update counters and time
+   rec->flow->bytes += data->bytes;
+   rec->flow->packets += data->packets;
+   rec->flow->tcpflags |= data->tcpflags;
+   rec->flow->last = {data->etime_sec, data->etime_nsec / 1000};
+
+   cache_offload_nsf(cache, rec, 0);
 }
 
-int cache_offload_nsf(struct flowcache_s *cache)
+int cache_offload_nsf(struct flowcache_s *cache, struct cacherec_s *rec, int offload)
 {
-    nsf_message_t *nsf_msg = nsf_get_message_buffer(cache->nsf_access); // send NSF offload request
-    //TODO: call cache_offload odnekud -> pridat parameter identifikace flow.
-    //nsf_message_access_key(nsf_msg).elems.interface = key.ifc;
-    //nsf_message_access_key(nsf_msg).elems.ip_version = key.ipver;
-    //nsf_message_access_key(nsf_msg).elems.protocol = key.proto;
-    //nsf_message_access_key(nsf_msg).elems.src_port = key.sport;
-    //nsf_message_access_key(nsf_msg).elems.dst_port = key.dport;
-    //nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[0] = key.sip.addr64[0];
-    //nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[1] = key.sip.addr64[1];
-    //nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[0] = key.dip.addr64[0];
-    //nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[1] = key.dip.addr64[1];
+   struct flowrec_s *flow = rec->flow;
+   nsf_message_t *nsf_msg = nsf_get_message_buffer(cache->nsf_access); // send NSF offload request
 
-    nsf_message_set_operation(nsf_msg, NSF_MESSAGE_OPERATION_ADD);
-    nsf_message_add_operation(nsf_msg, NSF_MESSAGE_OPERATION_MARKHEAVY);
-    nsf_message_set_action(nsf_msg, NSF_ACTION_FLOW_UH);
-    nsf_message_set_nohash(nsf_msg);
-    nsf_message_set_context(nsf_msg, cache->nsf_context);
-    nsf_send(cache->nsf_access);
+   //nsf_message_access_key(nsf_msg).elems.interface = key.ifc; // TODO
+   nsf_message_access_key(nsf_msg).elems.ip_version = flow->ip_version;
+   nsf_message_access_key(nsf_msg).elems.protocol = flow->proto;
+   nsf_message_access_key(nsf_msg).elems.src_port = flow->src_port;
+   nsf_message_access_key(nsf_msg).elems.dst_port = flow->dst_port;
+
+   nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[0] = *((uint64_t *) flow->src_ip.v6.addr);
+   nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[1] = *((uint64_t *) flow->src_ip.v6.addr + 1);
+   nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[0] = *((uint64_t *) flow->dst_ip.v6.addr);
+   nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[1] = *((uint64_t *) flow->dst_ip.v6.addr + 1);
+
+   nsf_message_set_operation(nsf_msg, NSF_MESSAGE_OPERATION_ADD);
+   nsf_message_add_operation(nsf_msg, NSF_MESSAGE_OPERATION_MARKHEAVY);
+   if (offload) {
+      nsf_message_set_action(nsf_msg, NSF_ACTION_FLOW_UH);
+   } else {
+      nsf_message_set_action(nsf_msg, NSF_ACTION_FULL);
+   }
+   nsf_message_set_nohash(nsf_msg);
+   nsf_message_set_context(nsf_msg, cache->nsf_context);
+   nsf_send(cache->nsf_access);
+
+   rec->offloaded = offload;
 }
 
 void cache_export_expired(struct flowcache_s *cache, time_t time)
 {
    for (uint32_t i = 0; i < cache->cache_size; i++) {
       struct cacherec_s *rec = cache->cache[i];
-      if (rec->hash != 0 && time - rec->flow->last.tv_sec >= cache->inactive) {
+      if (rec->hash != 0 && rec->offloaded == 0  && time - rec->flow->last.tv_sec >= cache->inactive) {
          cache_export_flow(cache, rec);
       }
    }
@@ -417,6 +492,7 @@ void cache_export_expired(struct flowcache_s *cache, time_t time)
 
 void cache_export_all(struct flowcache_s *cache)
 {
+   // TODO: update all offloaded flows before exporting records to collector
    for (uint32_t i = 0; i < cache->cache_size; i++) {
       struct cacherec_s *rec = cache->cache[i];
       if (rec->hash != 0) {
