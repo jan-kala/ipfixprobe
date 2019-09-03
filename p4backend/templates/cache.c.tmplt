@@ -371,7 +371,7 @@ int cache_init(struct flowcache_s *cache, uint32_t cache_size, uint32_t line_siz
 }
 
 
-int cache_init_nsf(struct flowcache_s *cache, struct nsf_access_t *access)
+int cache_init_nsf(struct flowcache_s *cache, nsf_access_t access)
 {
     cache->nsf_access = access;
 }
@@ -383,7 +383,7 @@ void cache_add_nsf(struct flowcache_s *cache, struct flowKey *key, struct flowDa
 
 int cache_offload_nsf(struct flowcache_s *cache)
 {
-    struct nsf_message_t *nsf_msg = nsf_get_message_buffer(*(cache->nsf_access)); // send NSF offload request
+    struct nsf_message_t *nsf_msg = nsf_get_message_buffer(cache->nsf_access); // send NSF offload request
     //TODO: call cache_offload odnekud -> pridat parameter identifikace flow.
     //nsf_message_access_key(nsf_msg).elems.interface = key.ifc;
     //nsf_message_access_key(nsf_msg).elems.ip_version = key.ipver;
@@ -400,7 +400,7 @@ int cache_offload_nsf(struct flowcache_s *cache)
     nsf_message_set_action(nsf_msg, NSF_ACTION_FLOW_UH);
     nsf_message_set_nohash(nsf_msg);
     nsf_message_set_context(nsf_msg, nsf_context);
-    nsf_send(*(cache->nsf_access));
+    nsf_send(cache->nsf_access);
 }
 
 void cache_export_expired(struct flowcache_s *cache, time_t time)
