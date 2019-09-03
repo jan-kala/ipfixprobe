@@ -94,7 +94,7 @@ inline int flowRecord::from_nsf(struct ndp_packet &packet/*, statCounters &cnts*
             this->data.etime_sec = le32toh(ndphdr->timestamp_sec);
             this->data.stime_nsec = this->data.etime_nsec;
             this->data.stime_sec = this->data.etime_sec;
-            memset((unsigned char *)&this->key, 0, sizeof(flowRecord::flowKey));
+            memset((unsigned char *)&this->key, 0, sizeof(flowKey));
             this->key.ifc = ndphdr->interface;
             //parse_eth(packet.data, packet.data_length); // start frame parsing from Ethernet header
             //cnts.packets++;
