@@ -132,7 +132,7 @@ void runBackend(const P4EOptions &options, const IR::ToplevelBlock *topLevel, P4
    env.write(tmpltMain, dummy, "main.c");
 
    inja::Template tmpltMainNsf = env.parse_template("sdm-parser.h.tmplt");
-   env.write(tmpltMain, dummy, "sdm-parser.h");
+   env.write(tmpltMainNsf, dummy, "sdm-parser.h");
 
    inja::Template tmpltSDMTypes = env.parse_template("sdm-types.h.tmplt");
    env.write(tmpltSDMTypes, dummy, "sdm-types.h");
