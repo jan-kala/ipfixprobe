@@ -118,7 +118,9 @@ void runBackend(const P4EOptions &options, const IR::ToplevelBlock *topLevel, P4
       return;
    }
 
-   if (!exporter::fileExists(options.templatesDir_ + "/main.c.tmplt")) {
+   if (!exporter::fileExists(options.templatesDir_ + "/main.c.tmplt")||
+	!exporter::fileExists(options.templatesDir_ + "/main-nsf.cpp.tmplt")||
+	!exporter::fileExists(options.templatesDir_ + "/sdm-parser.h.tmplt")) {
       ::error("template file main.c.tmplt could not be read");
       return;
    }
@@ -128,6 +130,12 @@ void runBackend(const P4EOptions &options, const IR::ToplevelBlock *topLevel, P4
    inja::Environment env = inja::Environment(options.templatesDir_ + "/", options.genDir_ + "/");
    inja::Template tmpltMain = env.parse_template("main.c.tmplt");
    env.write(tmpltMain, dummy, "main.c");
+
+   inja::Template tmpltMainNsf = env.parse_template("sdm-parser.h.tmplt");
+   env.write(tmpltMain, dummy, "sdm-parser.h");
+
+   inja::Template tmpltMainNsf = env.parse_template("main-nsf.cpp.tmplt");
+   env.write(tmpltMain, dummy, "main-nsf.cpp");
 
    exporter::copy(options.templatesDir_ + "/Makefile.am", options.genDir_ + "/Makefile.am");
    exporter::copy(options.templatesDir_ + "/configure.ac", options.genDir_ + "/configure.ac");

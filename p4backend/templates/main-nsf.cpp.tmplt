@@ -1,0 +1,341 @@
+/**
+ * \file main.c
+ * \date 2019
+ * \author Jiri Havranek <havranek@cesnet.cz>
+ */
+/*
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name of the Company nor the names of its contributors
+ *    may be used to endorse or promote products derived from this
+ *    software without specific prior written permission.
+
+ * This software is provided ``as is'', and any express or implied
+ * warranties, including, but not limited to, the implied warranties of
+ * merchantability and fitness for a particular purpose are disclaimed.
+ * In no event shall the company or contributors be liable for any
+ * direct, indirect, incidental, special, exemplary, or consequential
+ * damages (including, but not limited to, procurement of substitute
+ * goods or services; loss of use, data, or profits; or business
+ * interruption) however caused and on any theory of liability, whether
+ * in contract, strict liability, or tort (including negligence or
+ * otherwise) arising in any way out of the use of this software, even
+ * if advised of the possibility of such damage.
+*/
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <time.h>
+#include <getopt.h>
+#include <errno.h>
+#include <signal.h>
+#include <ctype.h>
+
+#include <nfb/ndp.h>
+#include <nfb/nfb.h>
+#include <nsf/nsf.h>
+#include <numa.h>
+#include <pcap.h>
+#include "sdm-parser.h"
+
+#include "cache.h"
+#include "ipfix.h"
+#include "parser.h"
+#include "plugin.h"
+#include "types.h"
+
+#include <iostream>
+#include <vector>
+#include <thread>
+
+bool run = true; //!< Global indication if the program's main body should run or end.
+
+/**
+ * \brief Signal handler for Ctrl+C, that requests end of program execution.
+ */
+static void killHandler(int) {
+    run = false;
+}
+
+
+/**
+ * \brief Helper to delay the processing thread for a while.
+ * @param us Number of microseconds to sleep.
+ */
+void delay_usecs(unsigned int us) {
+    struct timespec t1;
+    struct timespec t2;
+    if (us == 0)
+
+        return;
+
+    t1.tv_sec = (us / 1000000);
+    t1.tv_nsec = (us % 1000000) * 1000;
+
+    /* NB: Other variants of sleep block whole process. */
+retry:
+    if (nanosleep((const struct timespec *)&t1, &t2) == -1)
+        if (errno == EINTR) {
+            t1 = t2; /* struct copy */
+            goto retry;
+        }
+    return;
+}
+
+
+std::string __progname = "probe-nsf";
+
+/**
+ * \brief Prepare NDP data capturing for one data processing thread.
+ * @param id Processing thread identification.
+ * @param dev Connected NFB device.
+ * @param rx Open NDP RX queue.
+ */
+inline void thread_ndp_preparation(unsigned id, struct nfb_device *&dev, struct ndp_queue *&rx) {
+    struct bitmask *bits = NULL;
+    int node_id;
+    rx = ndp_open_rx_queue(dev, id);
+    if(!rx)
+        throw std::runtime_error(std::string() + "error opening NDP queue of NFB device");
+    if(((node_id = ndp_queue_get_numa_node(rx)) >= 0) && // OPTIONAL: bind thread to correct NUMA node
+       ((bits = numa_allocate_nodemask()) != NULL)) {
+        (void)numa_bitmask_setbit(bits, node_id);
+        numa_bind(bits);
+        numa_free_nodemask(bits);
+    } else
+        std::cerr << std::string() + __progname + ": thread #" + std::to_string((long long unsigned)id) + ": warning - NUMA node binding failed\n";
+    if(ndp_queue_start(rx)) // start capturing data from NDP queue
+        throw std::runtime_error(std::string() + "error starting NDP queue on NFB device");
+}
+
+
+
+/**
+ * \brief Packet processing thread main functionality.
+ * @param id Thread number and identification.
+ * @param args Parsed command line arguments from program's main.
+ * @param nsf_context Created NSF control context.
+ * @param nsf Created NSF daemon connection.
+ * @param cnts Pointer to packets counters (received/captured) for this thread.
+ */
+void thread_main(unsigned id, char *path, int nsf_context, nsf_t nsf) {
+    nsf_access_t nsf_acc = NULL; // communication channel with NSF daemon for processing offload requests
+    struct nfb_device *dev = NULL; // NFB device
+    struct ndp_queue *rx = NULL; // data receiving NDP queue
+    flowRecord update; // flow record extracted from NSF received data (frame, header or flow record)
+    uint32_t time_sec = 0;
+    bool use_nsf = true;
+
+
+
+    int status = 0;
+    uint32_t packet_limit = 0;
+    uint64_t total_bytes = 0;
+    uint64_t total_packets = 0;
+    const char *plugins = NULL;
+
+    struct fpp_parser_s parser;
+    struct packet_hdr_s *parsed_hdr = NULL;
+
+    struct flowcache_s cache;
+    uint32_t cache_size  = 1 << 17;
+    uint32_t cache_line_size = 16;
+    uint32_t timeout_active = 300;
+    uint32_t timeout_inactive = 30;
+
+    struct ipfix_s ipfix;
+    uint32_t odid = 1;
+    char *host = "127.0.0.1";
+    char *port = "4739";
+    int udp = 1;
+    int verbose = 0;
+    uint8_t dir = 1;
+    int export_basic = 1;
+
+    int snaplen = 1500;
+    int timeout = 1000;
+
+    memset(&cache, 0, sizeof(cache));
+    ipfix_prepare(&ipfix);
+    fpp_init(&parser);
+
+
+    ipfix_init(&ipfix, odid, host, port, udp, verbose, dir, export_basic);
+    if (!cache_init(&cache, cache_size, cache_line_size, timeout_active, timeout_inactive, &ipfix, plugins)) {
+       fprintf(stderr, "Error: unable to initialize cache\n");
+       status = 1;
+       goto EXIT;
+    }
+
+
+    try {
+        if(use_nsf) {
+            nsf_acc = nsf_open(nsf, 15); // prepare NSF offload requests channel
+            if(nsf_error(nsf_acc))
+                throw std::runtime_error(std::string() + "unable to create communication channel with NSF daemon");
+        }
+        //flowCache fc(id, args, nsf_context, nsf_acc, cnts); // create flow cache with flow records exported into given file
+        dev = nfb_open(path); // path to NFB device
+        if(!dev)
+            throw std::runtime_error(std::string() + "unable to open NFB device '" + path + "'");
+        thread_ndp_preparation(id, dev, rx); // start data capture from SZE device
+
+
+        while(run) { // main processing body
+            struct ndp_packet packet;
+            int cnt = ndp_rx_burst_get(rx, &packet, 1);
+            if (cnt == 0) {
+                cache_export_expired(&cache, time(NULL));
+                delay_usecs(200);
+                continue;
+            }
+
+            update.from_nsf(packet); // parse received data
+            nsf_ndphdr *ndphdr = (nsf_ndphdr *) packet.header;
+            if(ndphdr->data_type == NDPHDR_DATA_TYPE_FRAME) {
+                total_packets++;
+                total_bytes += packet.data_length;
+
+                if (fpp_parse_packet(&parser, packet.data, packet.data_length, &parsed_hdr) != NoError) {
+                   fpp_free(&parser, parsed_hdr);
+                   ndp_rx_burst_put(rx);
+                   continue;
+                }
+
+                struct timeval timeStruct = {update.data.stime_sec, update.data.stime_nsec/1000};
+                cache_add_packet(&cache, parsed_hdr, timeStruct, 0, packet.data, packet.data_length);
+
+                //Offload
+//                if(false) { // offload limit just reached for this flow
+//                    nsf_msg = nsf_get_message_buffer(nsf_acc); // send NSF offload request
+
+//                    nsf_message_access_key(nsf_msg).elems.interface = key.ifc;
+//                    nsf_message_access_key(nsf_msg).elems.ip_version = key.ipver;
+//                    nsf_message_access_key(nsf_msg).elems.protocol = key.proto;
+//                    nsf_message_access_key(nsf_msg).elems.src_port = key.sport;
+//                    nsf_message_access_key(nsf_msg).elems.dst_port = key.dport;
+//                    nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[0] = key.sip.addr64[0];
+//                    nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[1] = key.sip.addr64[1];
+//                    nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[0] = key.dip.addr64[0];
+//                    nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[1] = key.dip.addr64[1];
+
+//                    nsf_message_set_operation(nsf_msg, NSF_MESSAGE_OPERATION_ADD);
+//                    nsf_message_add_operation(nsf_msg, NSF_MESSAGE_OPERATION_MARKHEAVY);
+//                    nsf_message_set_action(nsf_msg, NSF_ACTION_FLOW_UH);
+//                    nsf_message_set_nohash(nsf_msg);
+//                    nsf_message_set_context(nsf_msg, nsf_context);
+//                    (nsf_acc);
+//                }
+
+                fpp_free(&parser, parsed_hdr);
+            } else if(ndphdr->data_type == NDPHDR_DATA_TYPE_UH) {
+            } else if(ndphdr->data_type == NDPHDR_DATA_TYPE_FLOW) {
+            }
+
+            ndp_rx_burst_put(rx);
+            if (packet_limit && total_packets >= packet_limit) {
+               break;
+            }
+        }
+
+        cache_export_all(&cache);
+    } catch(std::exception &e) { // processing thread error handling and display
+        run = false;
+        std::cerr << std::string() + __progname + ": thread #" + std::to_string((long long unsigned)id) + ": " + e.what() + "\n";
+    }
+
+
+    printf("   %lu packets read (%lu bytes)\n", total_packets, total_bytes);
+    printf("   %lu packets processed in cache\n", cache.packets_total);
+    printf("   %lu flow records created\n", cache.flows_total);
+
+    if(!nsf_error(nsf_acc)) // close NSF communication channel
+        nsf_close(nsf_acc);
+    if(rx) { // close NDP queue
+        ndp_queue_stop(rx);
+        ndp_close_rx_queue(rx);
+    }
+    if(dev) // close NFB device
+        nfb_close(dev);
+
+EXIT:
+    fpp_clear(&parser);
+    cache_clear(&cache);
+    ipfix_shutdown(&ipfix);
+}
+
+
+inline void main_nsf_preparation(int &nsf_context, nsf_t &nsf, const char *daemon_file, int daemon_id) {
+    /// 1) Connection with NSF daemon.
+    nsf = nsf_initd(daemon_file, daemon_id);
+    if(nsf_error(nsf))
+        throw std::runtime_error(std::string() + "unable to contact NSF daemon for device '" + daemon_file + "'");
+
+    /// 2) Control context preparation.
+    context_t c;
+    c.default_action = NSF_ACTION_FULL; // send full packets by default
+    c.default_action_params.trim_length=0xFFFF; // no trimming
+    c.default_action_params.tx_forward=0xF; // default forwarding destination (same interface)
+    c.default_action_params.forwarding=0;   // disable TX (OBUF) forwarding
+    c.default_action_params.distribution=0; // hash based DMA distribution over all channels
+    c.default_action_params.dma_from=0;
+    c.default_action_params.dma_to=0xFF;
+
+    /// 3) Control context activation.
+    nsf_context = nsf_start_context(nsf, &c);
+    if(nsf_context < 0)
+        throw std::runtime_error(std::string() + "error creating NSF context");
+}
+
+
+int main(int argc, char *argv[]) {
+    int exit_code = EXIT_SUCCESS; // program's exit code
+    nsf_t nsf = NULL; // communication channel with NSF daemon (controller)
+    int nsf_context = -1; // program's context of NSF control
+    unsigned thread_numbers; // number of packet processing threads to execute
+    std::vector<std::thread> threads; // program packet processing threads
+
+    try {
+        char* path = NFB_PATH_DEV(0);
+        int deamonId = -1;
+        main_nsf_preparation(nsf_context, nsf, path, deamonId); // prepare NSF communication
+
+        bool enableMultithread = true;
+        if(enableMultithread) { // select number of packet processing threads
+            struct nfb_device *dev = nfb_open(path);
+            if(dev == NULL)
+                throw std::runtime_error(std::string() + "unable to open NFB device '" + path + "'");
+            thread_numbers = ndp_get_rx_queue_available_count(dev)/2; // one thread for each DMA channel
+            nfb_close(dev);
+        } else
+            thread_numbers = 1; // no multithreading => only one processing thread for all DMA channels
+
+        threads.reserve(thread_numbers); // prepare threads data
+        for(unsigned i = 0; i < thread_numbers; i++) // execute processing threads
+            threads.push_back(std::thread(thread_main, i, path, nsf_context, nsf));
+        signal(SIGINT, killHandler); // register Ctrl+C handler to request end of program execution
+        for(std::vector<std::thread>::iterator it = threads.begin(); it != threads.end(); ++it) // wait for all processing threads to end
+            it->join();
+
+        std::cout << std::endl; // display input/output processing statistics
+        std::cout << "Threads joined" << std::endl;
+    } catch(std::exception &e) { // main thread error handling and display
+        std::cerr << __progname << ": " << e.what() << std::endl;
+        exit_code = EXIT_FAILURE;
+    }
+
+    if(nsf_context >= 0) // don't forget to correctly clean NSF structures before end
+        nsf_end_context(nsf, nsf_context);
+    if(!nsf_error(nsf))
+        nsf_deinit(nsf);
+    return exit_code;
+}
