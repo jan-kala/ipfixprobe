@@ -400,7 +400,7 @@ int cache_offload_nsf(struct flowcache_s *cache)
     nsf_message_set_action(nsf_msg, NSF_ACTION_FLOW_UH);
     nsf_message_set_nohash(nsf_msg);
     nsf_message_set_context(nsf_msg, nsf_context);
-    nsf_send(nsf_acc);
+    nsf_send(*(cache->nsf_access));
 }
 
 void cache_export_expired(struct flowcache_s *cache, time_t time)

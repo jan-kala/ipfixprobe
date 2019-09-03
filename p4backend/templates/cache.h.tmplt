@@ -108,7 +108,7 @@ void cache_clear(struct flowcache_s *cache);
 
 int cache_init_nsf(struct flowcache_s *cache, struct nsf_access_t *access);
 int cache_offload_nsf(struct flowcache_s *cache);
-void cache_add_nsf(struct flowcache_s *cache, struct nsf_record *record);
+void cache_add_nsf(struct flowcache_s *cache, struct flowKey *key, struct flowData *data);
 
 #if defined (__cplusplus)
 }
