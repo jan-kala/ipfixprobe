@@ -43,6 +43,10 @@
 #include <nsf/nsf.h>
 #include "sdm-types.h"
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 struct cacherec_s {
    uint64_t hash;
    struct flowrec_s *flow;
@@ -105,5 +109,10 @@ void cache_clear(struct flowcache_s *cache);
 int cache_init_nsf(struct flowcache_s *cache, struct nsf_access_t *access);
 int cache_offload_nsf(struct flowcache_s *cache);
 void cache_add_nsf(struct flowcache_s *cache, struct nsf_record *record);
+
+#if defined (__cplusplus)
+}
+#endif
+
 
 #endif

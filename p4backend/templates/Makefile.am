@@ -1,4 +1,4 @@
-bin_PROGRAMS=ipfixprobe ipfixprobe-nsf
+bin_PROGRAMS=ipfixprobe ipfixprobe_nsf
 
 ipfixprobe_SOURCES=cache.c \
 	cache.h \
@@ -17,7 +17,7 @@ ipfixprobe_SOURCES=cache.c \
 
 ipfixprobe_LDADD=-lpcap
 
-ipfixprobe-nsf_SOURCES=cache.c \
+ipfixprobe_nsf_SOURCES=cache.c \
 	cache.h \
 	ipfix.c \
 	ipfix.h \
@@ -33,7 +33,7 @@ ipfixprobe-nsf_SOURCES=cache.c \
 	main-nsf.cpp \
 	sdm-parser.h
 
-ipfixprobe-nsf_LDADD= -lpcap -lnsf -lnfb -lfdt -lnuma -lpthread -lcrypto -lsll -lm -lstdc++ -lpcap
+ipfixprobe_nsf_LDADD= -lpcap -lnsf -lnfb -lfdt -lnuma -lpthread -lcrypto -lssl -lm -lstdc++ -lpcap
 
 EXTRA_DIST=README.md
 

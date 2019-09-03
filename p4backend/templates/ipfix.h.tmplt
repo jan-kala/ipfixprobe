@@ -48,6 +48,12 @@
 #define TEMPLATE_REFRESH_TIME 600
 #define TEMPLATE_REFRESH_PACKETS 0
 
+
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
+
 typedef struct {
 	//char *name; /**< Record name */
 	uint16_t enterpriseNumber; /**< Enterprise Number */
@@ -342,5 +348,9 @@ int ipfix_reconnect(struct ipfix_s *ipfix);
  * \brief Flushes all data to collector and close connection
  */
 void ipfix_shutdown(struct ipfix_s *ipfix);
+
+#if defined (__cplusplus)
+}
+#endif
 
 #endif
