@@ -18,6 +18,7 @@ ipfixprobe_SOURCES=cache.c \
 ipfixprobe_LDADD=-lpcap
 
 ipfixprobe_nsf_SOURCES=cache.c \
+        sdm-types.h \
 	cache.h \
 	ipfix.c \
 	ipfix.h \
