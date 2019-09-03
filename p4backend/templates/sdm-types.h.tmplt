@@ -44,44 +44,44 @@
 #ifndef __HEADER_FILE_PARSER
 #define __HEADER_FILE_PARSER
 
-#include "sdm-types.h"
+
 
 /**
- * \brief Information about network flow (one flow cache record).
+ * \brief IPv4 or IPv6 address.
  */
-class flowRecord {
+typedef union {
+    uint8_t addr8[16]; //!< IP address data as array of bytes.
+    uint16_t addr16[8]; //!< IP address data as array of two-byte values.
+    uint32_t addr32[4]; //!< IP address data as array of four-byte values.
+    uint64_t addr64[2]; //!< IP address data as array of eight-byte values.
+} __attribute__((__packed__)) ip_addr;
 
-    public:
 
-        /**
-         * \brief Parse flow record fields from captured NSF transaction.
-         * @param packet Captured packet from NDP (NDP header with frame, header or flow record).
-         * @param cnts Statistics counters, where parsed transaction will be acounted.
-         * @return Type of NSF received data: 0 means packet, 1 means header and 2 means flow record.
+/**
+         * \brief Flow record identification fields.
          */
-        inline int from_nsf(struct ndp_packet &packet/*, statCounters &cnts*/);
-        flowKey key; //!< Flow record identification fields.
-        flowData data; //!< Flow record aggregated data fields.
+typedef struct {
+    ip_addr sip; //!< Source IPv4 or IPv6 address.
+    ip_addr dip; //!< Destination IPv4 or IPv6 address.
+    uint16_t sport; //!< Source UDP/TCP port number.
+    uint16_t dport; //!< Destination UDP/TCP port number.
+    uint8_t ipver; //!< Layer 3 protocol identification (version of IP).
+    uint8_t proto; //!< Layer 4 protocol number.
+    uint8_t ifc; //!< Input interface number.
+} __attribute__((__packed__)) flowKey;
 
-    private:
-
-        /**
-         * \brief Internal part of data parser: Unified Header format parsing.
-         * @param d Start of UH data.
-         * @param len Length of UH data.
+/**
+         * \brief Flow record aggregated data fields.
          */
-        __always_inline void parse_uh(unsigned char *d, unsigned len);
-
-        /**
-         * \brief Internal part of data parser: flow record firmware format parsing.
-         * @param d Start of flow data.
-         * @param len Length of flow data.
-         */
-        __always_inline void parse_flow(unsigned char *d, unsigned len);
-
-};
-
-
+typedef struct {
+    uint64_t bytes; //!< Counter of flow bytes.
+    uint64_t packets; //!< Counter of flow packets.
+    uint32_t stime_nsec; //!< Start of flow timestamp - nanoseconds part.
+    uint32_t stime_sec; //!< Start of flow timestamp - seconds part.
+    uint32_t etime_nsec; //!< End of flow timestamp - nanoseconds part.
+    uint32_t etime_sec; //!< End of flow timestamp - seconds part.
+    uint8_t tcpflags; //!< Agregated TCP flags from flow packets.
+} __attribute__((__packed__)) flowData;
 
 /**
  * \brief Format of NDP header of data received from NSF firmware.
@@ -100,46 +100,6 @@ typedef struct {
 #define NDPHDR_DATA_TYPE_UH    1 //!< Format of data captured from NSF firmware: Unified Header - data extracted from a single packet.
 #define NDPHDR_DATA_TYPE_FLOW  2 //!< Format of data captured from NSF firmware: NetFlow record - data aggregated in firmware from packets of one flow.
 
-inline int flowRecord::from_nsf(struct ndp_packet &packet/*, statCounters &cnts*/) {
-    nsf_ndphdr *ndphdr; // NDP frame header
-    ndphdr = (nsf_ndphdr *) packet.header;
-
-    switch(ndphdr->data_type) {
-        case NDPHDR_DATA_TYPE_FRAME:
-            this->data.packets = 1; // fill implicit filed values for single frame
-            this->data.bytes = packet.data_length; // captured frame length gets changed to packet length for IP traffic
-            this->data.tcpflags = 0;
-            this->data.etime_nsec = le32toh(ndphdr->timestamp_nsec);
-            this->data.etime_sec = le32toh(ndphdr->timestamp_sec);
-            this->data.stime_nsec = this->data.etime_nsec;
-            this->data.stime_sec = this->data.etime_sec;
-            memset((unsigned char *)&this->key, 0, sizeof(flowRecord::flowKey));
-            this->key.ifc = ndphdr->interface;
-            //parse_eth(packet.data, packet.data_length); // start frame parsing from Ethernet header
-            //cnts.packets++;
-            break;
-        case NDPHDR_DATA_TYPE_UH:
-            this->data.packets = 1; // fill implicit values for single frame header
-            this->key.ifc = ndphdr->interface;
-            this->data.etime_nsec = le32toh(ndphdr->timestamp_nsec);
-            this->data.etime_sec = le32toh(ndphdr->timestamp_sec);
-            this->data.stime_nsec = this->data.etime_nsec;
-            this->data.stime_sec = this->data.etime_sec;
-            parse_uh(packet.data, packet.data_length);
-            //cnts.headers++;
-            break;
-        case NDPHDR_DATA_TYPE_FLOW:
-            this->key.ifc = ndphdr->interface;
-            this->data.etime_nsec = le32toh(ndphdr->timestamp_nsec);
-            this->data.etime_sec = le32toh(ndphdr->timestamp_sec);
-            parse_flow(packet.data, packet.data_length);
-            //cnts.flow_records++;
-            //cnts.flow_packets += this->data.packets;
-            break;
-    }
-    return ndphdr->data_type;
-}
-
 
 
 /**
@@ -156,22 +116,6 @@ typedef struct {
     uint16_t l4_srcport; //!< Source UDP/TCP port number.
     uint16_t l4_dstport; //!< Destination UDP/TCP port number.
 } __attribute__((__packed__)) nsf_header;
-
-__always_inline void flowRecord::parse_uh(unsigned char *d, unsigned) {
-    nsf_header *h = (nsf_header *)d;
-    memcpy(key.sip.addr8, h->l3_srcaddr.addr8, 16);
-    memcpy(key.dip.addr8, h->l3_dstaddr.addr8, 16);
-    data.bytes = h->flow_octets;
-    key.ipver = h->l3_protocol;
-    key.proto = h->l4_protocol;
-    data.tcpflags = h->l4_tcpflags;
-    if(key.proto == IPPROTO_TCP || key.proto == IPPROTO_UDP) { // TCP or UDP port numbers
-        key.sport =  h->l4_srcport;
-        key.dport = h->l4_dstport;
-    }
-}
-
-
 
 /**
  * \brief Format of flow record received from NSF firmware.
@@ -192,24 +136,6 @@ typedef struct {
     uint32_t timestamp_nsec; //!< Nanoseconds part of first captured packet timestamp.
     uint32_t timestamp_sec; //!< Seconds part of first captured packet timestamp.
 } __attribute__((__packed__)) nsf_record;
-
-__always_inline void flowRecord::parse_flow(unsigned char *d, unsigned) {
-    nsf_record *h = (nsf_record *)d;
-    memcpy(key.sip.addr8, h->l3_srcaddr.addr8, 16);
-    memcpy(key.dip.addr8, h->l3_dstaddr.addr8, 16);
-    data.bytes = le32toh(h->flow_octets);
-    key.ipver = h->l3_protocol;
-    key.proto = h->l4_protocol;
-    data.tcpflags = h->l4_tcpflags;
-    if(key.proto == IPPROTO_TCP || key.proto == IPPROTO_UDP) { // TCP or UDP port numbers
-        key.sport = h->l4_srcport;
-        key.dport = h->l4_dstport;
-    }
-    data.packets = le32toh(h->flow_packets);
-    data.stime_nsec = le32toh(h->timestamp_nsec);
-    data.stime_sec = le32toh(h->timestamp_sec);
-}
-
 
 
 

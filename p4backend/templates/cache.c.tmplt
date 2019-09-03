@@ -39,6 +39,8 @@
 #include <time.h>
 #include <stdio.h>
 
+#include "nsf/nsf.h"
+#include "sdm-types.h"
 #include "xxhash.h"
 #include "types.h"
 #include "parser.h"
@@ -366,6 +368,39 @@ int cache_init(struct flowcache_s *cache, uint32_t cache_size, uint32_t line_siz
    }
 
    return 1;
+}
+
+
+int cache_init_nsf(struct flowcache_s *cache, struct nsf_access_t *access)
+{
+    cache->nsf_access = access;
+}
+
+void cache_add_nsf(struct flowcache_s *cache, struct flowKey *key, struct flowData *data)
+{
+    //TODO: update cache with record.
+}
+
+int cache_offload_nsf(struct flowcache_s *cache)
+{
+    struct nsf_message_t *nsf_msg = nsf_get_message_buffer(cache->nsf_access); // send NSF offload request
+    //TODO: call cache_offload odnekud -> pridat parameter identifikace flow.
+    //nsf_message_access_key(nsf_msg).elems.interface = key.ifc;
+    //nsf_message_access_key(nsf_msg).elems.ip_version = key.ipver;
+    //nsf_message_access_key(nsf_msg).elems.protocol = key.proto;
+    //nsf_message_access_key(nsf_msg).elems.src_port = key.sport;
+    //nsf_message_access_key(nsf_msg).elems.dst_port = key.dport;
+    //nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[0] = key.sip.addr64[0];
+    //nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[1] = key.sip.addr64[1];
+    //nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[0] = key.dip.addr64[0];
+    //nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[1] = key.dip.addr64[1];
+
+    nsf_message_set_operation(nsf_msg, NSF_MESSAGE_OPERATION_ADD);
+    nsf_message_add_operation(nsf_msg, NSF_MESSAGE_OPERATION_MARKHEAVY);
+    nsf_message_set_action(nsf_msg, NSF_ACTION_FLOW_UH);
+    nsf_message_set_nohash(nsf_msg);
+    nsf_message_set_context(nsf_msg, nsf_context);
+    nsf_send(nsf_acc);
 }
 
 void cache_export_expired(struct flowcache_s *cache, time_t time)

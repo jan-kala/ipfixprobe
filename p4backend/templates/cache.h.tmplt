@@ -40,6 +40,9 @@
 #define FLOW_FLUSH 1
 #define FLOW_EXPORT 2
 
+#include <nsf/nsf.h>
+#include "sdm-types.h"
+
 struct cacherec_s {
    uint64_t hash;
    struct flowrec_s *flow;
@@ -64,6 +67,8 @@ struct flowcache_s {
    struct flowrec_s **flows_free;
    uint32_t flows_free_cnt;
    struct timeval last_time;
+
+   struct nsf_access_t *nsf_access;
 
    uint32_t plugin_cnt;
    struct plugin_s *plugins;
@@ -96,5 +101,9 @@ int cache_init(struct flowcache_s *cache, uint32_t cache_size, uint32_t line_siz
 void cache_export_expired(struct flowcache_s *cache, time_t time);
 void cache_export_all(struct flowcache_s *cache);
 void cache_clear(struct flowcache_s *cache);
+
+int cache_init_nsf(struct flowcache_s *cache, struct nsf_access_t *access);
+int cache_offload_nsf(struct flowcache_s *cache);
+void cache_add_nsf(struct flowcache_s *cache, struct nsf_record *record);
 
 #endif

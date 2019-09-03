@@ -182,7 +182,9 @@ void thread_main(unsigned id, char *path, int nsf_context, nsf_t nsf) {
             nsf_acc = nsf_open(nsf, 15); // prepare NSF offload requests channel
             if(nsf_error(nsf_acc))
                 throw std::runtime_error(std::string() + "unable to create communication channel with NSF daemon");
+            cache_init_nsf(&cache, &nsf_acc);
         }
+
         //flowCache fc(id, args, nsf_context, nsf_acc, cnts); // create flow cache with flow records exported into given file
         dev = nfb_open(path); // path to NFB device
         if(!dev)
@@ -213,32 +215,10 @@ void thread_main(unsigned id, char *path, int nsf_context, nsf_t nsf) {
 
                 struct timeval timeStruct = {update.data.stime_sec, update.data.stime_nsec/1000};
                 cache_add_packet(&cache, parsed_hdr, timeStruct, 0, packet.data, packet.data_length);
-
-                //Offload
-//                if(false) { // offload limit just reached for this flow
-//                    nsf_msg = nsf_get_message_buffer(nsf_acc); // send NSF offload request
-
-//                    nsf_message_access_key(nsf_msg).elems.interface = key.ifc;
-//                    nsf_message_access_key(nsf_msg).elems.ip_version = key.ipver;
-//                    nsf_message_access_key(nsf_msg).elems.protocol = key.proto;
-//                    nsf_message_access_key(nsf_msg).elems.src_port = key.sport;
-//                    nsf_message_access_key(nsf_msg).elems.dst_port = key.dport;
-//                    nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[0] = key.sip.addr64[0];
-//                    nsf_message_access_key(nsf_msg).elems.src_ip.v6.d64[1] = key.sip.addr64[1];
-//                    nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[0] = key.dip.addr64[0];
-//                    nsf_message_access_key(nsf_msg).elems.dst_ip.v6.d64[1] = key.dip.addr64[1];
-
-//                    nsf_message_set_operation(nsf_msg, NSF_MESSAGE_OPERATION_ADD);
-//                    nsf_message_add_operation(nsf_msg, NSF_MESSAGE_OPERATION_MARKHEAVY);
-//                    nsf_message_set_action(nsf_msg, NSF_ACTION_FLOW_UH);
-//                    nsf_message_set_nohash(nsf_msg);
-//                    nsf_message_set_context(nsf_msg, nsf_context);
-//                    (nsf_acc);
-//                }
-
                 fpp_free(&parser, parsed_hdr);
             } else if(ndphdr->data_type == NDPHDR_DATA_TYPE_UH) {
             } else if(ndphdr->data_type == NDPHDR_DATA_TYPE_FLOW) {
+                cache_add_nsf(&cache, &(update.key), &(update.flowData));
             }
 
             ndp_rx_burst_put(rx);
