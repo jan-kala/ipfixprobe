@@ -41,8 +41,8 @@
  *
  */
 
-#ifndef __HEADER_FILE_PARSER
-#define __HEADER_FILE_PARSER
+#ifndef __HEADER_SDM_TYPES
+#define __HEADER_SDM_TYPES
 
 
 
