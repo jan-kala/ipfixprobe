@@ -73,6 +73,7 @@ struct flowcache_s {
    struct timeval last_time;
 
    nsf_access_t nsf_access;
+   int nsf_context;
 
    uint32_t plugin_cnt;
    struct plugin_s *plugins;
@@ -106,7 +107,7 @@ void cache_export_expired(struct flowcache_s *cache, time_t time);
 void cache_export_all(struct flowcache_s *cache);
 void cache_clear(struct flowcache_s *cache);
 
-int cache_init_nsf(struct flowcache_s *cache, nsf_access_t access);
+int cache_init_nsf(struct flowcache_s *cache, nsf_access_t access, int context);
 int cache_offload_nsf(struct flowcache_s *cache);
 void cache_add_nsf(struct flowcache_s *cache, struct flowKey *key, struct flowData *data);
 
