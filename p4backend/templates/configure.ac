@@ -19,6 +19,7 @@ AC_CONFIG_SRCDIR([ipfix.c])
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CXX
 
 # Checks for libraries.
 AC_CHECK_LIB([pcap], [pcap_next_ex], [], [AC_MSG_ERROR([libpcap not found])])

@@ -71,6 +71,11 @@
 #endif
 #define PARSER_MAX_LINK_COUNT PARSER_MAX_HEADER_COUNT * {{ length(parsed_headers/fields) }}
 
+
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
 {{ return_codes/type_name }} { {% for code in return_codes/codes %}
     {% if loop/is_last %}{{ code }}{% else %}{{ code }},{% endif %}{% endfor %}
 };
@@ -95,5 +100,9 @@ void fpp_init(struct fpp_parser_s *parser);
 void fpp_free(struct fpp_parser_s *parser, struct packet_hdr_s *headers);
 void fpp_clear(struct fpp_parser_s *parser);
 {{ return_codes/type_name }} fpp_parse_packet(struct fpp_parser_s *parser, {{ packet_var/type_name }} {{ packet_var/name }}, {{ packet_len_var/type_name }} {{ packet_len_var/name }}, {{ out_headers/type_name }} {{ out_headers/name}});
+
+#if defined (__cplusplus)
+}
+#endif
 
 #endif

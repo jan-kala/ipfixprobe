@@ -36,6 +36,12 @@
 #include <stdint.h>
 #include <sys/time.h>
 
+
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
+
 {% for decl in types %}
 {{ decl/type_name }} { {% if existsIn(decl, "fields") %}{% for field in decl/fields %}
     {{ field/type_name }} {{ field/name }}{% if existsIn(field, "array") %}[{{ field/array_size }}]{% endif %};{% endfor %}{% endif %}
@@ -44,5 +50,9 @@
 {{ parsed_headers/type_name }} { {% for field in parsed_headers/fields %}
     {{ field/type_name }} *{{ field/name }};{% endfor %}
 };
+
+#if defined (__cplusplus)
+}
+#endif
 
 #endif
