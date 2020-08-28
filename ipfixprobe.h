@@ -71,8 +71,8 @@ const unsigned int DEFAULT_FLOW_LINE_SIZE = 4;
 #else
 const unsigned int DEFAULT_FLOW_LINE_SIZE = 16;
 #endif /* HAVE_NDP */
-const double DEFAULT_INACTIVE_TIMEOUT = 30.0;
-const double DEFAULT_ACTIVE_TIMEOUT = 300.0;
+const double DEFAULT_INACTIVE_TIMEOUT = 15.0;
+const double DEFAULT_ACTIVE_TIMEOUT = 30.0;
 
 /**
  * \brief Struct containing module settings.
