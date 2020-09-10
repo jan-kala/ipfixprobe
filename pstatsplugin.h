@@ -60,7 +60,7 @@
 
 
 #ifndef PSTATS_MAXELEMCOUNT
-#define PSTATS_MAXELEMCOUNT 30
+#define PSTATS_MAXELEMCOUNT 100
 #endif
 
 using namespace std;
