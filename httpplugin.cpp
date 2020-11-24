@@ -298,7 +298,7 @@ bool HTTPPlugin::parse_http_request(const char *data, int payload_len, RecordExt
       DEBUG_MSG("Parser quits:\tflushing flow\n");
       return false;
    }
-   strcpy(rec->method, buffer);
+   strncpy(rec->method, buffer, sizeof(rec->method) - 1);
 
    copy_str(rec->uri, sizeof(rec->uri), begin + 1, end);
    DEBUG_MSG("\tMethod: %s\n",   rec->method);
