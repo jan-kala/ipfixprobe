@@ -42,6 +42,7 @@
  */
 
 #include <iostream>
+#include <stdio.h>
 
 #include "smtpplugin.h"
 #include "flowifc.h"
