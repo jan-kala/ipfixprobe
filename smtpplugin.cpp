@@ -285,15 +285,18 @@ bool SMTPPlugin::parse_smtp_command(const char *data, int payload_len, RecordExt
 
    begin = data;
    end = strchr(begin, '\r');
-
-   len = end - begin;
    if (end == NULL) {
       return false;
-   }
-   end = strchr(begin, ' ');
-   if (end != NULL) {
+   } else {
       len = end - begin;
    }
+   end = strchr(begin, ' ');
+   if (end == NULL) {
+      return false;
+   } else {
+      len = end - begin;
+   }
+
    if (len >= sizeof(buffer)) {
       return false;
    }

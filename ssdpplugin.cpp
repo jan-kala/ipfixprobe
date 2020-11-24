@@ -157,6 +157,8 @@ uint16_t SSDPPlugin::parse_loc_port(char *data, uint8_t ip_version)
 
    if (data) {
       data++;
+   } else {
+      return 0;
    }
 
    port = strtol(data, &end_ptr, 0);
