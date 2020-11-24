@@ -113,7 +113,12 @@ int SMTPPlugin::pre_update(Flow &rec, Packet &pkt)
          create_smtp_record(rec, pkt);
          return 0;
       }
-      update_smtp_record(dynamic_cast<RecordExtSMTP *>(ext), pkt);
+      if (RecordExtSMTP *smtp_rec = dynamic_cast<RecordExtSMTP *>(ext)) {
+         update_smtp_record(smtp_rec, pkt);
+      } else {
+         fprintf(stderr, "dynamic_cast failed: file(%s), line(%d) \n", __FILE__, __LINE__);
+         exit(EXIT_FAILURE);
+      }
    }
 
    return 0;

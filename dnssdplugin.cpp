@@ -179,8 +179,12 @@ int DNSSDPlugin::post_update(Flow &rec, const Packet &pkt)
       if (ext == NULL) {
          return add_ext_dnssd(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, rec);
       } else {
-         parse_dns(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP,
-                   dynamic_cast<RecordExtDNSSD *>(ext));
+         if (RecordExtDNSSD *dns_rec = dynamic_cast<RecordExtDNSSD *>(ext)) {
+            parse_dns(pkt.payload, pkt.payload_length, pkt.ip_proto == IPPROTO_TCP, dns_rec);
+         } else {
+            fprintf(stderr, "dynamic_cast failed: file(%s), line(%d) \n", __FILE__, __LINE__);
+            exit(EXIT_FAILURE);
+         }
       }
       return 0;
    }

@@ -139,8 +139,12 @@ int HTTPPlugin::pre_update(Flow &rec, Packet &pkt)
          add_ext_http_request(pkt.payload, pkt.payload_length, rec);
          return 0;
       }
-
-      parse_http_request(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtHTTP *>(ext));
+      if(RecordExtHTTP *http_rec = dynamic_cast<RecordExtHTTP *>(ext)) {
+         parse_http_request(pkt.payload, pkt.payload_length, http_rec);
+      } else {
+         fprintf(stderr, "dynamic_cast failed: file(%s), line(%d) \n", __FILE__, __LINE__);
+         exit(EXIT_FAILURE);
+      }
       if (flush_flow) {
          flush_flow = false;
          return FLOW_FLUSH_WITH_REINSERT;
@@ -152,7 +156,12 @@ int HTTPPlugin::pre_update(Flow &rec, Packet &pkt)
          return 0;
       }
 
-      parse_http_response(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtHTTP *>(ext));
+      if (RecordExtHTTP *http_rec = dynamic_cast<RecordExtHTTP *>(ext)) {
+         parse_http_response(pkt.payload, pkt.payload_length, http_rec);
+      } else {
+         fprintf(stderr, "dynamic_cast failed: file(%s), line(%d) \n", __FILE__, __LINE__);
+         exit(EXIT_FAILURE);
+      }
       if (flush_flow) {
          flush_flow = false;
          return FLOW_FLUSH_WITH_REINSERT;

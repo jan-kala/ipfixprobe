@@ -138,7 +138,12 @@ int RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
          return 0;
       }
 
-      parse_rtsp_request(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtRTSP *>(ext));
+      if(RecordExtRTSP *rtsp_rec = dynamic_cast<RecordExtRTSP *>(ext)) {
+         parse_rtsp_request(pkt.payload, pkt.payload_length, rtsp_rec);
+      } else {
+         fprintf(stderr, "dynamic_cast failed: file(%s), line(%d) \n", __FILE__, __LINE__);
+         exit(EXIT_FAILURE);
+      }
       if (flush_flow) {
          flush_flow = false;
          return FLOW_FLUSH_WITH_REINSERT;
@@ -150,7 +155,12 @@ int RTSPPlugin::pre_update(Flow &rec, Packet &pkt)
          return 0;
       }
 
-      parse_rtsp_response(pkt.payload, pkt.payload_length, dynamic_cast<RecordExtRTSP *>(ext));
+      if (RecordExtRTSP *rtsp_rec = dynamic_cast<RecordExtRTSP *>(ext)) {
+         parse_rtsp_response(pkt.payload, pkt.payload_length, rtsp_rec);
+      } else {
+         fprintf(stderr, "dynamic_cast failed: file(%s), line(%d) \n", __FILE__, __LINE__);
+         exit(EXIT_FAILURE);
+      }
       if (flush_flow) {
          flush_flow = false;
          return FLOW_FLUSH_WITH_REINSERT;
