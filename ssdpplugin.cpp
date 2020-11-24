@@ -88,23 +88,13 @@ const char *headers[] = {
    "user-agent"
 };
 
-SSDPPlugin::SSDPPlugin(const options_t &module_options)
-{
-   record = NULL;
-   print_stats = module_options.print_stats;
-   notifies = 0;
-   searches = 0;
-   total = 0;
-}
+SSDPPlugin::SSDPPlugin(const options_t &module_options):
+   print_stats(module_options.print_stats), notifies(0),
+   searches(0), total(0), record(NULL){}
 
-SSDPPlugin::SSDPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
-{
-   record = NULL;
-   print_stats = module_options.print_stats;
-   notifies = 0;
-   searches = 0;
-   total = 0;
-}
+SSDPPlugin::SSDPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options),
+   print_stats(module_options.print_stats), notifies(0),
+   searches(0), total(0), record(NULL){}
 
 int SSDPPlugin::post_create(Flow &rec, const Packet &pkt)
 {

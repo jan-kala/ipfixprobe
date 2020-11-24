@@ -68,9 +68,7 @@ private:
    uint32_t plugin_cnt;
 
 public:
-   FlowCache() : plugins(NULL), plugin_cnt(0)
-   {
-   }
+   FlowCache() : exporter(NULL), plugins(NULL), plugin_cnt(0){}
 
    ~FlowCache()
    {

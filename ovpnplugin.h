@@ -70,14 +70,9 @@ struct RecordExtOVPN : RecordExt
    uint32_t status;
    ipaddr_t client_ip;
 
-   RecordExtOVPN() : RecordExt(ovpn)
-   {
-      possible_vpn = 0;
-      pkt_cnt = 0;
-      data_pkt_cnt = 0;
-      invalid_pkt_cnt = 0;
-      status = 0;
-   }
+   RecordExtOVPN() : RecordExt(ovpn),
+      possible_vpn(0), pkt_cnt(0), data_pkt_cnt(0),
+      invalid_pkt_cnt(0), status(0), client_ip(){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

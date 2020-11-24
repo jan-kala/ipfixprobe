@@ -52,18 +52,12 @@
 using namespace std;
 
 // Constructor
-StatsPlugin::StatsPlugin(struct timeval interval, ostream &out)
- : interval(interval), out(out)
-{
-}
+StatsPlugin::StatsPlugin(struct timeval p_interval, ostream &p_out):
+   packets(0), new_flows(0), cache_hits(0), flows_in_cache(0),
+   interval(p_interval), last_ts(), out(p_out), init_ts(true){}
 
 void StatsPlugin::init()
 {
-   packets = 0;
-   new_flows = 0;
-   cache_hits = 0;
-   flows_in_cache = 0;
-   init_ts = true;
    print_header();
 }
 

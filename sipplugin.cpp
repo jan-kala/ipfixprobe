@@ -70,23 +70,13 @@ UR_FIELDS (
    string SIP_VIA
 )
 
-SIPPlugin::SIPPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-   requests = 0;
-   responses = 0;
-   total = 0;
-   flush_flow = true;
-}
+SIPPlugin::SIPPlugin(const options_t &module_options):
+   print_stats(module_options.print_stats),
+   flush_flow(true), requests(0), responses(0), total(0){}
 
-SIPPlugin::SIPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
-{
-   print_stats = module_options.print_stats;
-   requests = 0;
-   responses = 0;
-   total = 0;
-   flush_flow = true;
-}
+SIPPlugin::SIPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options),
+   print_stats(module_options.print_stats),
+   flush_flow(true), requests(0), responses(0), total(0){}
 
 int SIPPlugin::post_create(Flow &rec, const Packet &pkt)
 {

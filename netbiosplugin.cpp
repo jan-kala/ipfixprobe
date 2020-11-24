@@ -63,16 +63,12 @@ UR_FIELDS (
     uint8 NB_SUFFIX
 )
 
-NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options) {
-    print_stats = module_options.print_stats;
-    total_netbios_packets = 0;
-}
+NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options):
+   total_netbios_packets(0), print_stats(module_options.print_stats){}
 
 NETBIOSPlugin::NETBIOSPlugin(const options_t &module_options, vector <plugin_opt> plugin_options) : FlowCachePlugin(
-        plugin_options) {
-    print_stats = module_options.print_stats;
-    total_netbios_packets = 0;
-}
+        plugin_options),
+   total_netbios_packets(0), print_stats(module_options.print_stats){}
 
 int NETBIOSPlugin::post_create(Flow &rec, const Packet &pkt) {
     if (pkt.dst_port == 137 || pkt.src_port == 137) {

@@ -71,15 +71,11 @@ UR_FIELDS (
    int8* PPI_PKT_DIRECTIONS,
 )
 
-PSTATSPlugin::PSTATSPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-}
+PSTATSPlugin::PSTATSPlugin(const options_t &module_options):
+   print_stats(module_options.print_stats){}
 
-PSTATSPlugin::PSTATSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
-{
-   print_stats = module_options.print_stats;
-}
+PSTATSPlugin::PSTATSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options),
+   print_stats(module_options.print_stats){}
 
 int PSTATSPlugin::pre_create(Packet &pkt)
 {

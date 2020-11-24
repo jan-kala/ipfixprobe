@@ -82,22 +82,18 @@ UR_FIELDS(
    bytes TLS_JA3
 )
 
-TLSPlugin::TLSPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-   parsed_sni  = 0;
-   flow_flush  = false;
-   ext_ptr     = NULL;
-}
+TLSPlugin::TLSPlugin(const options_t &module_options):
+   ext_ptr(NULL),
+   print_stats(module_options.print_stats),
+   parsed_sni(0),
+   flow_flush(false){}
 
 TLSPlugin::TLSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(
-      plugin_options)
-{
-   print_stats = module_options.print_stats;
-   parsed_sni  = 0;
-   flow_flush  = false;
-   ext_ptr     = NULL;
-}
+      plugin_options),
+   ext_ptr(NULL),
+   print_stats(module_options.print_stats),
+   parsed_sni(0),
+   flow_flush(false){}
 
 TLSPlugin::~TLSPlugin()
 {

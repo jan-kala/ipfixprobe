@@ -88,21 +88,11 @@ UR_FIELDS (
    bytes ARP_DST_PA
 )
 
-ARPPlugin::ARPPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-   requests = 0;
-   replies = 0;
-   total = 0;
-}
+ARPPlugin::ARPPlugin(const options_t &module_options):
+   print_stats(module_options.print_stats), requests(0), replies(0), total(0){}
 
-ARPPlugin::ARPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
-{
-   print_stats = module_options.print_stats;
-   requests = 0;
-   replies = 0;
-   total = 0;
-}
+ARPPlugin::ARPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options),
+   print_stats(module_options.print_stats), requests(0), replies(0), total(0){}
 
 int ARPPlugin::pre_create(Packet &pkt)
 {

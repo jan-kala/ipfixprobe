@@ -139,33 +139,37 @@ class NHTFlowCache : public FlowCache
    FlowRecord *flow_records;
 
 public:
-   NHTFlowCache(const options_t &options)
-   {
-      size = options.flow_cache_size;
-      line_size = options.flow_line_size;
+   NHTFlowCache(const options_t &options):
+      print_stats(options.print_stats),
+      key_len(0),
+      size(options.flow_cache_size),
+      line_size(options.flow_line_size),
       /* Mask for getting flow cache line index. */
-      line_size_mask = (size - 1) & ~(line_size - 1);
-      line_new_index = line_size / 2;
+      line_size_mask((size - 1) & ~(line_size - 1)),
+      line_new_index(line_size / 2),
 #ifdef FLOW_CACHE_STATS
-      empty = 0;
-      not_empty = 0;
-      hits = 0;
-      expired = 0;
-      flushed = 0;
-      lookups = 0;
-      lookups2 = 0;
+      empty(0),
+      not_empty(0),
+      hits(0),
+      expired(0),
+      flushed(0),
+      lookups(0),
+      lookups2(0),
 #endif /* FLOW_CACHE_STATS */
-      last_ts = 0;
-      print_stats = options.print_stats;
-      active = options.active_timeout;
-      inactive = options.inactive_timeout;
-
-      flow_array = new FlowRecord*[size];
-      flow_records = new FlowRecord[size];
+      current_ts(),
+      last_ts(0),
+      active(options.active_timeout),
+      inactive(options.inactive_timeout),
+      key(),
+      key_inv(),
+      flow_array(new FlowRecord*[size]),
+      flow_records(new FlowRecord[size])
+   {
       for (unsigned int i = 0; i < size; i++) {
          flow_array[i] = flow_records + i;
       }
    };
+
    ~NHTFlowCache()
    {
       delete [] flow_records;

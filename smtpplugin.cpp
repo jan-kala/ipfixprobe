@@ -69,23 +69,13 @@ UR_FIELDS (
    string SMTP_FIRST_RECIPIENT
 )
 
-SMTPPlugin::SMTPPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-   total = 0;
-   replies_cnt = 0;
-   commands_cnt = 0;
-   ext_ptr = NULL;
-}
+SMTPPlugin::SMTPPlugin(const options_t &module_options):
+   ext_ptr(NULL), print_stats(module_options.print_stats), total(0),
+   replies_cnt(0), commands_cnt(0){}
 
-SMTPPlugin::SMTPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
-{
-   print_stats = module_options.print_stats;
-   total = 0;
-   replies_cnt = 0;
-   commands_cnt = 0;
-   ext_ptr = NULL;
-}
+SMTPPlugin::SMTPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options),
+   ext_ptr(NULL), print_stats(module_options.print_stats), total(0),
+   replies_cnt(0), commands_cnt(0){}
 
 const char *ipfix_smtp_template[] = {
    IPFIX_SMTP_TEMPLATE(IPFIX_FIELD_NAMES)

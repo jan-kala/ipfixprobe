@@ -91,21 +91,13 @@ UR_FIELDS (
  * \brief Constructor.
  * \param [in] options Module options.
  */
-NTPPlugin::NTPPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-   requests = 0;
-   responses = 0;
-   total = 0;
-}
+NTPPlugin::NTPPlugin(const options_t &module_options):
+   print_stats(module_options.print_stats),
+   requests(0), responses(0), total(0){}
 
-NTPPlugin::NTPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
-{
-   print_stats = module_options.print_stats;
-   requests = 0;
-   responses = 0;
-   total = 0;
-}
+NTPPlugin::NTPPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options),
+   print_stats(module_options.print_stats),
+   requests(0), responses(0), total(0){}
 
 /**
  *\brief Called after a new flow record is created.

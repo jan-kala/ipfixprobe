@@ -636,20 +636,17 @@ static void print_libpcap_stats(pcap_t *handle) {
 /**
  * \brief Constructor.
  */
-PcapReader::PcapReader() : handle(NULL), print_pcap_stats(false), netmask(PCAP_NETMASK_UNKNOWN)
-{
-}
+PcapReader::PcapReader() : 
+   handle(NULL), live_capture(false), print_pcap_stats(false), last_ts(),
+   netmask(PCAP_NETMASK_UNKNOWN){}
 
 /**
  * \brief Constructor.
  * \param [in] options Module options.
  */
-PcapReader::PcapReader(const options_t &options) : handle(NULL), netmask(PCAP_NETMASK_UNKNOWN)
-{
-   print_pcap_stats = options.print_pcap_stats;
-   last_ts.tv_sec = 0;
-   last_ts.tv_usec = 0;
-}
+PcapReader::PcapReader(const options_t &options) :
+   handle(NULL), live_capture(false), print_pcap_stats(options.print_pcap_stats), last_ts(),
+   netmask(PCAP_NETMASK_UNKNOWN){}
 
 PcapReader::~PcapReader()
 {
@@ -853,18 +850,15 @@ void packet_ndp_handler(Packet *pkt, const struct ndp_packet *ndp_packet, const 
 /**
  * \brief Constructor.
  */
-NdpPacketReader::NdpPacketReader() : print_pcap_stats(false)
-{
-}
+NdpPacketReader::NdpPacketReader() :
+   live_capture(false), print_pcap_stats(false), ndpReader(){}
 
 /**
  * \brief Constructor.
  * \param [in] options Module options.
  */
 NdpPacketReader::NdpPacketReader(const options_t &options)
-{
-   print_pcap_stats = options.print_pcap_stats;
-}
+   live_capture(false), print_pcap_stats(options.print_pcap_stats), ndpReader(){}
 
 /**
  * \brief Destructor.

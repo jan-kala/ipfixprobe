@@ -102,22 +102,14 @@ UR_FIELDS (
  * \brief Constructor.
  * \param [in] options Module options.
  */
-DNSSDPlugin::DNSSDPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-   queries = 0;
-   responses = 0;
-   total = 0;
-   txt_all_records = false;
-}
+DNSSDPlugin::DNSSDPlugin(const options_t &module_options):
+   txt_config(), txt_all_records(false), print_stats(module_options.print_stats),
+   queries(0), responses(0), total(0), data_begin(NULL), data_len(0){}
 
-DNSSDPlugin::DNSSDPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
+DNSSDPlugin::DNSSDPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options),
+   txt_config(), txt_all_records(false), print_stats(module_options.print_stats),
+   queries(0), responses(0), total(0), data_begin(NULL), data_len(0)
 {
-   print_stats = module_options.print_stats;
-   queries = 0;
-   responses = 0;
-   total = 0;
-   txt_all_records = false;
    string config_file;
    if (parse_params(plugin_options[0].params, config_file)) {
       load_txtconfig(config_file.c_str());

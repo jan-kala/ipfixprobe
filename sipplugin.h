@@ -358,18 +358,9 @@ struct RecordExtSIP : RecordExt {
    char cseq[SIP_FIELD_LEN];           /* CSeq field of SIP packet */
    char request_uri[SIP_FIELD_LEN];    /* Request-URI of SIP request */
 
-   RecordExtSIP() : RecordExt(sip)
-   {
-      msg_type = 0;
-      status_code = 0;
-      call_id[0] = 0;
-      calling_party[0] = 0;
-      called_party[0] = 0;
-      via[0] = 0;
-      user_agent[0] = 0;
-      cseq[0] = 0;
-      request_uri[0] = 0;
-   }
+   RecordExtSIP() : RecordExt(sip),
+      msg_type(0), status_code(0), call_id(), calling_party(),
+      called_party(), via(), user_agent(), cseq(), request_uri(){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

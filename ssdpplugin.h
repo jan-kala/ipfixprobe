@@ -75,14 +75,8 @@ struct RecordExtSSDP : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtSSDP() : RecordExt(ssdp)
-   {
-      port = 0;
-      nt[0] = 0;
-      st[0] = 0;
-      server[0] = 0;
-      user_agent[0]= 0;
-   }
+   RecordExtSSDP() : RecordExt(ssdp),
+      port(0), nt(), st(), server(), user_agent(){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

@@ -93,10 +93,10 @@ UR_FIELDS (
 /**
  * \brief Constructor.
  */
-UnirecExporter::UnirecExporter(bool send_eof) : out_ifc_cnt(0), ifc_mapping(NULL),
-tmplt(NULL), record(NULL), eof(send_eof), send_odid(false)
-{
-}
+UnirecExporter::UnirecExporter(bool send_eof) :
+   out_ifc_cnt(0), basic_ifc_num(0), ifc_mapping(NULL),
+   tmplt(NULL), record(NULL), eof(send_eof), send_odid(false),
+   link_bit_field(0), dir_bit_field(0){}
 
 /**
  * \brief Initialize exporter.

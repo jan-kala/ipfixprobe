@@ -74,9 +74,9 @@ struct RecordExtARP : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtARP() : RecordExt(arp), ha_len(0), pa_len(0)
-   {
-   }
+   RecordExtARP() : RecordExt(arp),
+      ha_type(0), pa_type(0), ha_len(0), pa_len(0), opcode(0),
+      src_ha(), src_pa(), dst_ha(), dst_pa(){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

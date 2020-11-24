@@ -93,9 +93,10 @@ struct Packet : public Record {
    /**
     * \brief Constructor.
     */
-   Packet() : total_length(0), packet(NULL), payload_length(0), payload(NULL)
-   {
-   }
+   Packet() : timestamp(), field_indicator(0), dst_mac(), src_mac(), ethertype(0),
+      ip_length(0), ip_payload_length(0), ip_version(0), ip_ttl(0), ip_proto(0),
+      ip_tos(0), src_ip(), dst_ip(), src_port(0), dst_port(0), tcp_control_bits(0),
+      total_length(0), packet(NULL), payload_length(0), payload(NULL), source_pkt(false){}
 };
 
 #endif

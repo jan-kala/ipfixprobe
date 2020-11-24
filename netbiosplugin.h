@@ -66,8 +66,8 @@ struct RecordExtNETBIOS : RecordExt {
     string netbios_name;
     char netbios_suffix;
 
-    RecordExtNETBIOS() : RecordExt(netbios) {
-    }
+    RecordExtNETBIOS() : RecordExt(netbios),
+      netbios_name(), netbios_suffix(0){}
 
 #ifdef WITH_NEMEA
     virtual void fillUnirec(ur_template_t *tmplt, void *record)

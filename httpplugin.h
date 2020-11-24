@@ -82,18 +82,9 @@ struct RecordExtHTTP : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtHTTP() : RecordExt(http)
-   {
-      req = false;
-      resp = false;
-      method[0] = 0;
-      host[0] = 0;
-      uri[0] = 0;
-      user_agent[0] = 0;
-      referer[0] = 0;
-      code = 0;
-      content_type[0] = 0;
-   }
+   RecordExtHTTP() : RecordExt(http),
+      req(false), resp(false), method(), host(), uri(),
+      user_agent(), referer(), code(0), content_type(){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

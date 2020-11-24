@@ -93,16 +93,16 @@ struct RecordExtNTP : RecordExt {
    /**
          *\brief Constructor.
    */
-   RecordExtNTP() : RecordExt(ntp)
+   RecordExtNTP() : RecordExt(ntp),
+      leap(9),
+      version(9),
+      mode(9),
+      stratum(9),
+      poll(9),
+      precision(9),
+      delay(9),
+      dispersion(9)
    {
-      leap = 9;
-      version = 9;
-      mode = 9;
-      stratum = 9;
-      poll = 9;
-      precision = 9;
-      delay = 9;
-      dispersion = 9;
       reference_id[0] = 9;
       reference[0] = 9;
       origin[0] = 9;

@@ -73,13 +73,7 @@ struct DnsSdRr {
    /**
     * \brief Constructor.
     */
-   DnsSdRr() {
-      name = string();
-      srv_port = -1;
-      srv_target = string();
-      hinfo[0] = string();
-      txt = string();
-   }
+   DnsSdRr(): name(), srv_port(-1), srv_target(), hinfo(), txt() {}
 };
 
 /**
@@ -92,9 +86,8 @@ struct RecordExtDNSSD : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtDNSSD() : RecordExt(dnssd)
-   {
-   }
+   RecordExtDNSSD() : RecordExt(dnssd),
+      queries(), responses(){}
 
    /**
     * \brief Concatenates all collected queries to a single string.

@@ -135,10 +135,8 @@ struct RecordExtPSTATS : RecordExt {
      return bufferPtr;
    }
 
-   RecordExtPSTATS() : RecordExt(pstats)
-   {
-      pkt_count = 0;
-   }
+   RecordExtPSTATS() : RecordExt(pstats),
+      pkt_sizes(), pkt_tcp_flgs(), pkt_timestamps(), pkt_dirs(), pkt_count(0){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

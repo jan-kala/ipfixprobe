@@ -120,21 +120,19 @@ struct RecordExtSMTP : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtSMTP() : RecordExt(smtp)
-   {
-      code_2xx_cnt = 0;
-      code_3xx_cnt = 0;
-      code_4xx_cnt = 0;
-      code_5xx_cnt = 0;
-      command_flags = 0;
-      mail_cmd_cnt = 0;
-      mail_rcpt_cnt = 0;
-      mail_code_flags = 0;
-      domain[0] = 0;
-      first_sender[0] = 0;
-      first_recipient[0] = 0;
-      data_transfer = 0;
-   }
+   RecordExtSMTP() : RecordExt(smtp),
+      code_2xx_cnt(0),
+      code_3xx_cnt(0),
+      code_4xx_cnt(0),
+      code_5xx_cnt(0),
+      command_flags(0),
+      mail_cmd_cnt(0),
+      mail_rcpt_cnt(0),
+      mail_code_flags(0),
+      domain(),
+      first_sender(),
+      first_recipient(),
+      data_transfer(0){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

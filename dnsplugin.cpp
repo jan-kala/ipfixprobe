@@ -110,21 +110,13 @@ UR_FIELDS (
  * \brief Constructor.
  * \param [in] options Module options.
  */
-DNSPlugin::DNSPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-   queries = 0;
-   responses = 0;
-   total = 0;
-}
+DNSPlugin::DNSPlugin(const options_t &module_options):
+   print_stats(module_options.print_stats), queries(0), responses(0),
+   total(0), data_begin(NULL), data_len(0){}
 
-DNSPlugin::DNSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
-{
-   print_stats = module_options.print_stats;
-   queries = 0;
-   responses = 0;
-   total = 0;
-}
+DNSPlugin::DNSPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options),
+   print_stats(module_options.print_stats), queries(0), responses(0),
+   total(0), data_begin(NULL), data_len(0){}
 
 int DNSPlugin::post_create(Flow &rec, const Packet &pkt)
 {

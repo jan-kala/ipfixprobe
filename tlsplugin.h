@@ -71,11 +71,9 @@ struct RecordExtTLS : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtTLS() : RecordExt(tls)
-   {
-      sni[0] = 0;
-      ja3_hash[0] = 0;
-   }
+   RecordExtTLS() : RecordExt(tls),
+      sni(), ja3_hash(), ja3_hash_bin(), ja3(){}
+
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
    {

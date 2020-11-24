@@ -80,20 +80,9 @@ struct RecordExtDNS : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtDNS() : RecordExt(dns)
-   {
-      id = 0;
-      answers = 0;
-      rcode = 0;
-      qname[0] = 0;
-      qtype = 0;
-      qclass = 0;
-      rr_ttl = 0;
-      rlength = 0;
-      data[0] = 0;
-      psize = 0;
-      dns_do = 0;
-   }
+   RecordExtDNS() : RecordExt(dns),
+      id(0), answers(0), rcode(0), qname(), qtype(0), qclass(0),
+      rr_ttl(0), rlength(0), data(), psize(0), dns_do(0){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

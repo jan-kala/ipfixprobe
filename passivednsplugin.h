@@ -74,14 +74,8 @@ struct RecordExtPassiveDNS : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtPassiveDNS() : RecordExt(passivedns)
-   {
-      id = 0;
-      atype = 0;
-      ip_version = 0;
-      aname[0] = 0;
-      rr_ttl = 0;
-   }
+   RecordExtPassiveDNS() : RecordExt(passivedns),
+      atype(0), id(0), ip_version(0), aname(), rr_ttl(0), ip(){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

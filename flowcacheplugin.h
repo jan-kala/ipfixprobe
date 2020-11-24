@@ -88,10 +88,10 @@ struct plugin_opt {
    plugin_opt(string extension, uint16_t type, int ifc_num, string params) : ext_name(extension), ext_type(type), out_ifc_num(ifc_num), params(params)
    {
    }
-   plugin_opt(string extension, uint16_t type, int ifc_num) : ext_name(extension), ext_type(type), out_ifc_num(ifc_num)
+   plugin_opt(string extension, uint16_t type, int ifc_num) : ext_name(extension), ext_type(type), out_ifc_num(ifc_num), params()
    {
    }
-   plugin_opt(string extension, uint16_t type) : ext_name(extension), ext_type(type), out_ifc_num(-1)
+   plugin_opt(string extension, uint16_t type) : ext_name(extension), ext_type(type), out_ifc_num(-1), params()
    {
    }
 };

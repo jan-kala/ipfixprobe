@@ -61,16 +61,12 @@ UR_FIELDS(
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-IDPCONTENTPlugin::IDPCONTENTPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-}
+IDPCONTENTPlugin::IDPCONTENTPlugin(const options_t &module_options):
+   print_stats(module_options.print_stats){}
 
 IDPCONTENTPlugin::IDPCONTENTPlugin(const options_t &module_options,
-  vector<plugin_opt>                               plugin_options) : FlowCachePlugin(plugin_options)
-{
-   print_stats = module_options.print_stats;
-}
+  vector<plugin_opt>                               plugin_options) : FlowCachePlugin(plugin_options),
+   print_stats(module_options.print_stats){}
 
 int IDPCONTENTPlugin::pre_create(Packet &pkt)
 {

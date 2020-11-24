@@ -79,19 +79,9 @@ struct RecordExtRTSP : RecordExt {
    /**
     * \brief Constructor.
     */
-   RecordExtRTSP() : RecordExt(rtsp)
-   {
-      req = false;
-      resp = false;
-
-      method[0] = 0;
-      user_agent[0] = 0;
-      uri[0] = 0;
-
-      code = 0;
-      content_type[0] = 0;
-      server[0] = 0;
-   }
+   RecordExtRTSP() : RecordExt(rtsp),
+      req(false), resp(false), method(), user_agent(),
+      uri(), code(0), content_type(), server(){}
 
 #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)

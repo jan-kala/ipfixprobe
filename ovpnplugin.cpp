@@ -60,15 +60,11 @@ UR_FIELDS (
    uint8 OVPN_CONF_LEVEL
 )
 
-OVPNPlugin::OVPNPlugin(const options_t &module_options)
-{
-   print_stats = module_options.print_stats;
-}
+OVPNPlugin::OVPNPlugin(const options_t &module_options):
+   print_stats(module_options.print_stats){}
 
-OVPNPlugin::OVPNPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options)
-{
-   print_stats = module_options.print_stats;
-}
+OVPNPlugin::OVPNPlugin(const options_t &module_options, vector<plugin_opt> plugin_options) : FlowCachePlugin(plugin_options),
+   print_stats(module_options.print_stats){}
 
 void OVPNPlugin::update_record(RecordExtOVPN* vpn_data, const Packet &pkt)
 {

@@ -78,8 +78,8 @@ struct RecordExtIDPCONTENT : RecordExt {
    idpcontentArray idps[EXPORTED_PACKETS];
 
 
-   RecordExtIDPCONTENT() : RecordExt(idpcontent)
-   { }
+   RecordExtIDPCONTENT() : RecordExt(idpcontent),
+      pkt_export_flg(), idps(){}
 
    #ifdef WITH_NEMEA
    virtual void fillUnirec(ur_template_t *tmplt, void *record)
