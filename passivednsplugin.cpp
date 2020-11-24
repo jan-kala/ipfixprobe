@@ -426,7 +426,7 @@ bool PassiveDNSPlugin::str_to_uint4(string str, uint8_t &dst)
    errno = 0;
    trim_str(str);
    unsigned long long value = strtoull(str.c_str(), &check, 16);
-   if (errno == ERANGE || str[0] == '-' || str[0] == '\0' || *check ||
+   if (errno == ERANGE || str.empty() || check[0] != '\0' || str[0] == '-' ||
       value > 15) {
       return false;
    }

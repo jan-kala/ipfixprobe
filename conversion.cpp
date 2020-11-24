@@ -70,7 +70,7 @@ bool str_to_uint64(string str, uint64_t &dst)
    errno = 0;
    trim_str(str);
    unsigned long long value = strtoull(str.c_str(), &check, 0);
-   if (errno == ERANGE || str[0] == '-' || str[0] == '\0' || *check ||
+   if (errno == ERANGE || str.empty() || check[0] != '\0' || str[0] == '-' ||
       value > numeric_limits<uint64_t>::max()) {
       return false;
    }
@@ -91,7 +91,7 @@ bool str_to_uint32(string str, uint32_t &dst)
    errno = 0;
    trim_str(str);
    unsigned long long value = strtoull(str.c_str(), &check, 0);
-   if (errno == ERANGE || str[0] == '-' || str[0] == '\0' || *check ||
+   if (errno == ERANGE || str.empty() || check[0] != '\0' || str[0] == '-' ||
       value > numeric_limits<uint32_t>::max()) {
       return false;
    }
@@ -112,7 +112,7 @@ bool str_to_uint16(string str, uint16_t &dst)
    errno = 0;
    trim_str(str);
    unsigned long long value = strtoull(str.c_str(), &check, 0);
-   if (errno == ERANGE || str[0] == '-' || str[0] == '\0' || *check ||
+   if (errno == ERANGE || str.empty() || check[0] != '\0' || str[0] == '-' ||
       value > numeric_limits<uint16_t>::max()) {
       return false;
    }
@@ -133,7 +133,7 @@ bool str_to_uint8(string str, uint8_t &dst)
    errno = 0;
    trim_str(str);
    unsigned long long value = strtoull(str.c_str(), &check, 0);
-   if (errno == ERANGE || str[0] == '-' || str[0] == '\0' || *check ||
+   if (errno == ERANGE || str.empty() || check[0] != '\0' || str[0] == '-' ||
       value > numeric_limits<uint8_t>::max()) {
       return false;
    }
@@ -154,7 +154,7 @@ bool str_to_double(string str, double &dst)
    errno = 0;
    trim_str(str);
    double value = strtod(str.c_str(), &check);
-   if (errno == ERANGE || *check || str[0] == '\0') {
+   if (errno == ERANGE || str.empty() || check[0] != '\0') {
       return false;
    }
 
