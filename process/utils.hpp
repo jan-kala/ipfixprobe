@@ -51,7 +51,7 @@
 #include <string>
 #include <sstream>
 
-#include "ipaddr.hpp"
+#include <ipfixprobe/ipaddr.hpp>
 
 #ifdef WITH_NEMEA
 #include "fields.h"
