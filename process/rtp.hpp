@@ -41,6 +41,8 @@
  *
  */
 
+#pragma once
+
 #ifndef IPXP_PROCESS_RTP_HPP
 #define IPXP_PROCESS_RTP_HPP
 
@@ -55,7 +57,16 @@
 #include <ipfixprobe/packet.hpp>
 #include <ipfixprobe/ipfix-elements.hpp>
 
+#include <devel/endian_mac.h>
+
 namespace ipxp {
+
+#define RTP_HEADER_MINIMUM_SIZE 12
+#define RTP_HEADER_NOT_FILLED 0
+#define RTP_HEADER_SRC_FILLED 1
+#define RTP_HEADER_DST_FILLED 2
+
+#define RTP_ANALYSIS_PACKETS 5
 
 #define RTP_UNIREC_TEMPLATE "" /* TODO: unirec template */
 
@@ -63,14 +74,52 @@ UR_FIELDS (
    /* TODO: unirec fields definition */
 )
 
+struct __attribute__ ((packed)) rtp_header {
+   union {
+      struct {
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
+      uint16_t csrc_count: 4;
+      uint16_t extension: 1;
+      uint16_t padding: 1;
+      uint16_t version: 2;
+      //next byte
+      uint16_t payload_type: 7;
+      uint16_t marker: 1;
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN
+      uint16_t version: 2;
+      uint16_t padding: 1;
+      uint16_t extension: 1;
+      uint16_t csrc_count: 4;
+      //next byte
+      uint16_t marker: 1;
+      uint16_t payload_type: 7;
+      
+# else
+# error  "Please fix <endian.h>"
+# endif
+      };
+      uint16_t flags;
+   };
+   uint16_t sequence_number; 
+   uint32_t timestamp;
+   uint32_t ssrc;
+};
+
 /**
  * \brief Flow record extension header for storing parsed RTP data.
  */
 struct RecordExtRTP : public RecordExt {
    static int REGISTERED_ID;
 
+   struct rtp_header rtp_header_src;
+   struct rtp_header rtp_header_dst;
+   bool is_rtp;
+   uint8_t rtp_header_filled;
+
    RecordExtRTP() : RecordExt(REGISTERED_ID)
    {
+      is_rtp = true;
+      rtp_header_filled = RTP_HEADER_NOT_FILLED;
    }
 
 #ifdef WITH_NEMEA
@@ -115,8 +164,18 @@ public:
    int pre_update(Flow &rec, Packet &pkt);
    int post_update(Flow &rec, const Packet &pkt);
    void pre_export(Flow &rec);
+
+   private:
+      uint32_t total_rtp;
+      uint32_t total;
+
+      void fill_rtp_record(const Packet &pkt, struct rtp_header * rtp_header);
+      void manage_packet(const Flow & rec, const Packet &pkt);
+      bool validate_rtp(const Packet &pkt);
+      bool verify_rtp(const Packet &pkt, const struct rtp_header & rtp_header_flow);
 };
 
 }
 #endif /* IPXP_PROCESS_RTP_HPP */
+
 
