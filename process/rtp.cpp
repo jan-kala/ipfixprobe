@@ -151,7 +151,7 @@ void RTPPlugin::manage_packet(const Flow & rec, const Packet &pkt){
       pkt.src_port == rec.src_port
       ){ // direction forward ->
       
-      if(rtp_record->rtp_header_filled != RTP_HEADER_SRC_FILLED){
+      if(!(rtp_record->rtp_header_filled & RTP_HEADER_SRC_FILLED) ){
          fill_rtp_record(pkt,&rtp_record->rtp_header_src);
          rtp_record->rtp_header_filled |= RTP_HEADER_SRC_FILLED;
          return;
@@ -162,7 +162,7 @@ void RTPPlugin::manage_packet(const Flow & rec, const Packet &pkt){
    }
    else { //direction back <-
 
-      if(rtp_record->rtp_header_filled != RTP_HEADER_DST_FILLED){
+      if(!(rtp_record->rtp_header_filled & RTP_HEADER_DST_FILLED)){
          fill_rtp_record(pkt,&rtp_record->rtp_header_dst);
          rtp_record->rtp_header_filled |= RTP_HEADER_DST_FILLED;
          return;
