@@ -267,8 +267,8 @@ public:
 
 private:
    void initialize_new_burst(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt);
-   void process_bursts(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt);
-   void update_record(RecordExtBSTATS *bstats_record, const Packet &pkt);
+   int process_bursts(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt);
+   int update_record(RecordExtBSTATS *bstats_record, const Packet &pkt);
    bool isLastRecordBurst(RecordExtBSTATS *bstats_record, uint8_t direction);
    bool belogsToLastRecord(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt);
 };

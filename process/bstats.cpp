@@ -115,36 +115,44 @@ bool BSTATSPlugin::isLastRecordBurst(RecordExtBSTATS *bstats_record, uint8_t dir
    return true;
 }
 
-void BSTATSPlugin::process_bursts(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt)
+int BSTATSPlugin::process_bursts(RecordExtBSTATS *bstats_record, uint8_t direction, const Packet &pkt)
 {
+
    if (belogsToLastRecord(bstats_record, direction, pkt)){ // does it belong to previous burst?
       bstats_record->brst_pkts[direction][bstats_record->BCOUNT]++;
       bstats_record->brst_bytes[direction][bstats_record->BCOUNT] += pkt.payload_len_wire;
       bstats_record->brst_end[direction][bstats_record->BCOUNT]    = pkt.ts;
-      return;
+      return 0;
    }
    // the packet does not belong to previous burst
+   bool increased = false;
    if (isLastRecordBurst(bstats_record, direction)){
       bstats_record->BCOUNT++;
+      increased = true;
    }
    if (bstats_record->BCOUNT < BSTATS_MAXELENCOUNT){
       initialize_new_burst(bstats_record, direction, pkt);
    }
+   if (increased && direction == BSTATS_SOURCE) {
+         return FLOW_FLUSH_WITH_REINSERT;
+   }
+   return 0;
 }
 
-void BSTATSPlugin::update_record(RecordExtBSTATS *bstats_record, const Packet &pkt)
+int BSTATSPlugin::update_record(RecordExtBSTATS *bstats_record, const Packet &pkt)
 {
    uint8_t direction = (uint8_t) !pkt.source_pkt;
 
    if (pkt.payload_len_wire == 0 || bstats_record->BCOUNT >= BSTATS_MAXELENCOUNT){
       // zero-payload or burst array is full
-      return;
+      return 0;
    }
    if (bstats_record->burst_empty[direction] == 0){
       bstats_record->burst_empty[direction] = 1;
       initialize_new_burst(bstats_record, direction, pkt);
+      return 0;
    } else {
-      process_bursts(bstats_record, direction, pkt);
+      return process_bursts(bstats_record, direction, pkt);
    }
 }
 
@@ -161,8 +169,7 @@ int BSTATSPlugin::pre_update(Flow &rec, Packet &pkt)
 {
    RecordExtBSTATS *bstats_record = static_cast<RecordExtBSTATS *>(rec.get_extension(RecordExtBSTATS::REGISTERED_ID));
 
-   update_record(bstats_record, pkt);
-   return 0;
+   return update_record(bstats_record, pkt);
 }
 
 int BSTATSPlugin::post_update(Flow &rec, const Packet &pkt)
