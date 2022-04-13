@@ -53,11 +53,14 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <ipfixprobe/ipaddr.hpp>
+
 namespace ipxp {
 
 void parse_range(const std::string &arg, std::string &from, std::string &to, const std::string &delim = "-");
 bool str2bool(std::string str);
 void trim_str(std::string &str);
+bool ipaddr_compare(ipaddr_t ip_1, ipaddr_t ip_2, uint8_t ip_version);
 
 template<typename T> constexpr
 T const& max(const T &a, const T &b) {

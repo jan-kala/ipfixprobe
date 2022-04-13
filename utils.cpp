@@ -43,6 +43,7 @@
 
 #include <string>
 #include <utility>
+#include <cstring>
 
 #include <ipfixprobe/utils.hpp>
 
@@ -103,6 +104,15 @@ uint64_t pntoh64(const void *p)
       buffer |= (uint64_t) *((const uint8_t *) (p) + x) << (shift - (x * 8));
    }
    return buffer;
+}
+
+bool ipaddr_compare(ipaddr_t ip_1, ipaddr_t ip_2, uint8_t ip_version){
+   if (ip_version == IP::v4 && !memcmp(&ip_1, &ip_2, 4)) {
+      return 1;
+   } else if (ip_version == IP::v6 && !memcmp(&ip_1, &ip_2, 16)) {
+      return 1;
+   }
+   return 0;
 }
 
 }

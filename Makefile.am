@@ -121,7 +121,11 @@ ipfixprobe_process_src=\
 		process/stats.cpp \
 		process/stats.hpp \
 		process/md5.hpp \
-		process/md5.cpp
+		process/md5.cpp \ 
+		process/rtp.hpp \
+		process/rtp.cpp \
+		process/rtp-exporter.hpp \
+		process/rtp-exporter.cpp
 
 if WITH_QUIC
 ipfixprobe_process_src+=\

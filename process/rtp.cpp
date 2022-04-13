@@ -44,56 +44,44 @@
 #include <iostream>
 
 #include "rtp.hpp"
-#include "utils.hpp"
+#include <ipfixprobe/utils.hpp>
 
 namespace ipxp {
-
 int RecordExtRTP::REGISTERED_ID = -1;
 
 __attribute__((constructor)) static void register_this_plugin()
 {
-   static PluginRecord rec = PluginRecord("rtp", [](){return new RTPPlugin();});
+   static PluginRecord rec = PluginRecord("rtp", [](){
+         return new RTPPlugin();
+      });
+
    register_plugin(&rec);
    RecordExtRTP::REGISTERED_ID = register_extension();
 }
 
-RTPPlugin::RTPPlugin() : total(0), total_rtp(0)
-{
-}
+RTPPlugin::RTPPlugin()
+{ }
 
 RTPPlugin::~RTPPlugin()
-{
-}
+{ }
 
 void RTPPlugin::init(const char *params)
-{
-}
+{ }
 
 void RTPPlugin::close()
-{
-}
+{ }
 
 ProcessPlugin *RTPPlugin::copy()
 {
    return new RTPPlugin(*this);
 }
 
-int RTPPlugin::pre_create(Packet &pkt)
-{
-   return 0;
-}
-
 int RTPPlugin::post_create(Flow &rec, const Packet &pkt)
 {
+   RecordExtRTP *rtp_record = new RecordExtRTP();
 
-   if(!validate_rtp(pkt))
-      return 0;
-
-   total++;
-   total_rtp++;
-
-   RecordExtRTP * rtp_record = new RecordExtRTP();
    rec.add_extension(rtp_record);
+
    manage_packet(rec, pkt);
 
    return 0;
@@ -101,117 +89,165 @@ int RTPPlugin::post_create(Flow &rec, const Packet &pkt)
 
 int RTPPlugin::pre_update(Flow &rec, Packet &pkt)
 {
-   manage_packet(rec,pkt);
-   return 0;
-}
-
-int RTPPlugin::post_update(Flow &rec, const Packet &pkt)
-{
+   manage_packet(rec, pkt);
    return 0;
 }
 
 void RTPPlugin::pre_export(Flow &rec)
+{ }
+
+bool RTPPlugin::validate_rtp(const Packet &pkt)
 {
-}
-
-bool RTPPlugin::validate_rtp(const Packet &pkt){
-
-   if(pkt.ip_proto != IPPROTO_UDP)
+   if (pkt.ip_version != 0x04 || pkt.ip_proto != IPPROTO_UDP)
       return false;
 
-   if(pkt.payload_len < RTP_HEADER_MINIMUM_SIZE)
+   if (pkt.payload_len < RTP_HEADER_MINIMUM_SIZE)
       return false;
 
-   if(pkt.dst_port < 1024)
+   if (pkt.dst_port == 53 || pkt.src_port == 53)
+      return false;
+
+   struct rtp_header *rtp_header = (struct rtp_header *) pkt.payload;
+
+   if (rtp_header->version != 2)
+      return false;
+
+   if (rtp_header->payload_type >= 72 && rtp_header->payload_type <= 95)
       return false;
 
    return true;
-
 }
 
-void RTPPlugin::manage_packet(const Flow & rec, const Packet &pkt){
+void RTPPlugin::manage_packet(const Flow & rec, const Packet &pkt)
+{
+   RecordExtRTP *rtp_record = static_cast<RecordExtRTP *>(rec.get_extension(RecordExtRTP::REGISTERED_ID));
 
-   RecordExtRTP * rtp_record = static_cast<RecordExtRTP *>(rec.get_extension(RecordExtRTP::REGISTERED_ID));
+   uint8_t direction = FLOW_PACKET_DIRECTION_SAME;
 
-   if(!rtp_record ||
-      !rtp_record->is_rtp ||
-      rec.dst_packets > RTP_ANALYSIS_PACKETS ||
-      rec.src_packets > RTP_ANALYSIS_PACKETS)
-      return;
-
-   if(!validate_rtp(pkt)){
-      rtp_record->is_rtp = false;
-      total_rtp--;
-      return;
+   if (ipaddr_compare(pkt.src_ip, rec.src_ip, pkt.ip_version) &&
+     pkt.src_port == rec.src_port
+   ) {
+      direction = FLOW_PACKET_DIRECTION_SAME;
+   } else {
+      direction = FLOW_PACKET_DIRECTION_DIFFERENT;
    }
 
-   struct rtp_header & rtp_header_flow = rtp_record->rtp_header_src;
+   if (direction == FLOW_PACKET_DIRECTION_SAME) {
+      if (rtp_record->rtp_header_filled & RTP_HEADER_SRC_EMPTY) {
+         if (!validate_rtp(pkt))
+            return;
 
-   if(utils::ipaddr_compare(pkt.src_ip, rec.src_ip, pkt.ip_version) && 
-      pkt.src_port == rec.src_port
-      ){ // direction forward ->
-      
-      if(!(rtp_record->rtp_header_filled & RTP_HEADER_SRC_FILLED) ){
-         fill_rtp_record(pkt,&rtp_record->rtp_header_src);
-         rtp_record->rtp_header_filled |= RTP_HEADER_SRC_FILLED;
-         return;
+         fill_rtp_record(pkt, rtp_record->rtp_header_src);
+
+         rtp_record->rtp_header_filled ^= RTP_HEADER_SRC_EMPTY;
+         rtp_record->rtp_header_filled |= RTP_HEADER_SRC_MATCHING;
+      } else if (rtp_record->rtp_header_filled & RTP_HEADER_SRC_MATCHING) {
+         if (!validate_rtp(pkt))
+            return;
+
+         if (verify_rtp(pkt, rtp_record->rtp_header_src)) {
+            update_rtp_record(pkt, rtp_record->rtp_header_src);
+
+            rtp_record->rtp_counter.total_src_after_recognition++;
+            rtp_record->rtp_counter.rtp_src++;
+
+            rtp_record->rtp_header_filled ^= RTP_HEADER_SRC_MATCHING;
+            rtp_record->rtp_header_filled |= RTP_HEADER_SRC_INITIALIZED;
+         } else {
+            fill_rtp_record(pkt, rtp_record->rtp_header_src);
+         }
+      } else if (rtp_record->rtp_header_filled & RTP_HEADER_SRC_INITIALIZED) {
+         if (validate_rtp(pkt) && verify_rtp(pkt, rtp_record->rtp_header_src)) {
+            update_rtp_record(pkt, rtp_record->rtp_header_src);
+
+            rtp_record->rtp_counter.rtp_src++;
+         }
+         rtp_record->rtp_counter.total_src_after_recognition++;
       }
+   } else {
+      if (rtp_record->rtp_header_filled & RTP_HEADER_DST_EMPTY) {
+         if (!validate_rtp(pkt))
+            return;
 
-      rtp_header_flow = rtp_record->rtp_header_src;
+         fill_rtp_record(pkt, rtp_record->rtp_header_dst);
 
-   }
-   else { //direction back <-
+         rtp_record->rtp_header_filled ^= RTP_HEADER_DST_EMPTY;
+         rtp_record->rtp_header_filled |= RTP_HEADER_DST_MATCHING;
+      } else if (rtp_record->rtp_header_filled & RTP_HEADER_DST_MATCHING) {
+         if (!validate_rtp(pkt))
+            return;
 
-      if(!(rtp_record->rtp_header_filled & RTP_HEADER_DST_FILLED)){
-         fill_rtp_record(pkt,&rtp_record->rtp_header_dst);
-         rtp_record->rtp_header_filled |= RTP_HEADER_DST_FILLED;
-         return;
+         if (verify_rtp(pkt, rtp_record->rtp_header_dst)) {
+            update_rtp_record(pkt, rtp_record->rtp_header_dst);
+
+            rtp_record->rtp_counter.total_dst_after_recognition++;
+            rtp_record->rtp_counter.rtp_dst++;
+
+            rtp_record->rtp_header_filled ^= RTP_HEADER_DST_MATCHING;
+            rtp_record->rtp_header_filled |= RTP_HEADER_DST_INITIALIZED;
+         } else {
+            fill_rtp_record(pkt, rtp_record->rtp_header_dst);
+         }
+      } else if (rtp_record->rtp_header_filled & RTP_HEADER_DST_INITIALIZED) {
+         if (validate_rtp(pkt) && verify_rtp(pkt, rtp_record->rtp_header_dst)) {
+            update_rtp_record(pkt, rtp_record->rtp_header_dst);
+
+            rtp_record->rtp_counter.rtp_dst++;
+         }
+
+         rtp_record->rtp_counter.total_dst_after_recognition++;
       }
-
-      rtp_header_flow = rtp_record->rtp_header_dst;
-
    }
+} // RTPPlugin::manage_packet
 
-   if(!verify_rtp(pkt,rtp_header_flow)){
-      rtp_record->is_rtp = false;
-      total_rtp--;
-      return;
-   }
+void RTPPlugin::fill_rtp_record(const Packet &pkt, struct rtp_header &rtp_header)
+{
+   memcpy(&rtp_header, pkt.payload, sizeof(struct rtp_header));
 
-   struct rtp_header * rtp_header = (struct rtp_header *) pkt.payload;
-
-   //refresh with new values
-   rtp_header_flow.sequence_number = ntohs(rtp_header->sequence_number);
-   rtp_header_flow.timestamp = ntohl(rtp_header->timestamp);
-
+   convert_rtp_record(rtp_header);
 }
 
-void RTPPlugin::fill_rtp_record(const Packet &pkt, struct rtp_header * rtp_header){
+void RTPPlugin::update_rtp_record(const Packet &pkt, struct rtp_header &rtp_header_record)
+{
+   struct rtp_header *rtp_header_packet = (struct rtp_header *) pkt.payload;
 
-   memcpy(rtp_header, pkt.payload, sizeof(struct rtp_header));
-   
-   rtp_header->sequence_number = ntohs(rtp_header->sequence_number);
-   rtp_header->timestamp = ntohl(rtp_header->timestamp);
-   rtp_header->ssrc = ntohl(rtp_header->ssrc);
+   rtp_header_record.sequence_number = rtp_header_packet->sequence_number;
+   rtp_header_record.timestamp       = rtp_header_packet->timestamp;
+   rtp_header_record.ssrc         = rtp_header_packet->ssrc;
+   rtp_header_record.payload_type = rtp_header_packet->payload_type;
 
+   convert_rtp_record(rtp_header_record);
 }
 
-bool RTPPlugin::verify_rtp(const Packet &pkt, const struct rtp_header & rtp_header_flow){
+void RTPPlugin::convert_rtp_record(struct rtp_header &rtp_header)
+{
+   rtp_header.sequence_number = ntohs(rtp_header.sequence_number);
+   rtp_header.timestamp       = ntohl(rtp_header.timestamp);
+   rtp_header.ssrc = ntohl(rtp_header.ssrc);
+}
 
-   struct rtp_header * rtp_header = (struct rtp_header *) pkt.payload;
+bool RTPPlugin::verify_rtp(const Packet &pkt, const struct rtp_header &rtp_header_record)
+{
+   struct rtp_header *rtp_header = (struct rtp_header *) pkt.payload;
 
    uint16_t sequence_number = ntohs(rtp_header->sequence_number);
-   uint32_t timestamp = ntohl(rtp_header->timestamp);
+   uint32_t timestamp       = ntohl(rtp_header->timestamp);
    uint32_t ssrc = ntohl(rtp_header->ssrc);
 
-   bool is_rtp = 
-      rtp_header_flow.ssrc == ssrc && 
-      rtp_header_flow.sequence_number < sequence_number &&
-      rtp_header_flow.timestamp < timestamp;
+   uint16_t payload_type = rtp_header->payload_type;
+
+   bool is_rtp = false;
+
+   if (payload_type == rtp_header_record.payload_type) {
+      is_rtp =
+        rtp_header_record.ssrc == ssrc &&
+        (std::abs(sequence_number - rtp_header_record.sequence_number) < RTP_SEQUENCE_NUMBER_MAX_DIFFERENCE ) &&
+        (std::abs((int64_t) timestamp - rtp_header_record.timestamp) < RTP_TIMESTAMP_MAX_DIFFERENCE );
+   } else {
+      is_rtp =
+        rtp_header_record.ssrc == ssrc;
+   }
 
    return is_rtp;
-
 }
-
-
 }
