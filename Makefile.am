@@ -152,6 +152,12 @@ ipfixprobe_input_src+=\
         input/dpdk.h
 endif
 
+if WITH_WEBTRAFFIC
+ipfixprobe_input_src+=\
+        process/webtraffic.cpp \
+        process/webtraffic.h
+endif
+
 ipfixprobe_headers_src=\
 		include/ipfixprobe/plugin.hpp \
 		include/ipfixprobe/input.hpp \

@@ -320,6 +320,22 @@ if [[ -z "$WITH_OSQUERY_TRUE" ]]; then
   AC_DEFINE([WITH_OSQUERY], [1], [Define to 1 if the osquery is available])
 fi
 
+AC_ARG_WITH([webtraffic],
+        AC_HELP_STRING([--with-webtraffic],[Compile with webtraffic annotator.]),
+        [
+      if test "$withval" = "yes"; then
+        withwebtraffic="yes"
+      else
+        withwebtraffic="no"
+      fi
+        ], [withwebtraffic="no"]
+)
+
+AM_CONDITIONAL(WITH_WEBTRAFFIC, test x${withwebtraffic} = xyes)
+
+if [[ -z "$WITH_WEBTRAFFIC_TRUE" ]]; then
+  AC_DEFINE([WITH_WEBTRAFFIC], [1], [Define to 1 if the webtraffic is available])
+fi
 
 AC_ARG_WITH([dpdk],
          AS_HELP_STRING([--with-dpdk],[Compile ipfixprobe with DPDK interface support.]),
