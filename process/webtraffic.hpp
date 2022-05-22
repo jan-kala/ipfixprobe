@@ -158,6 +158,8 @@ private:
 
    int                     sockFd;
    RecordExtWEBTRAFFIC *   recWebtraffic;
+   uint succ = 0;
+   uint failed = 0;
 };
 
 /**
@@ -184,7 +186,6 @@ public:
 
 private:
    WebtrafficRequestManager *manager;
-   int numberOfSuccessfullRequests;
 };
 
 }

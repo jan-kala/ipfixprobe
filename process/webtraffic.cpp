@@ -59,34 +59,34 @@ __attribute__((constructor)) static void register_this_plugin()
    RecordExtWEBTRAFFIC::REGISTERED_ID = register_extension();
 }
 
-WEBTRAFFICPlugin::WEBTRAFFICPlugin() : manager(nullptr), numberOfSuccessfullRequests(0)
+WEBTRAFFICPlugin::WEBTRAFFICPlugin() : manager(nullptr)
 {
-   std::cout << "ctor" << std::endl;
+   // std::cout << "ctor" << std::endl;
 }
 
 WEBTRAFFICPlugin::WEBTRAFFICPlugin(const WEBTRAFFICPlugin &p)
 {
-   std::cout << "ctor 2" << std::endl;
+   // std::cout << "ctor 2" << std::endl;
 
    init(nullptr);
 }
 
 WEBTRAFFICPlugin::~WEBTRAFFICPlugin()
 {
-   std::cout << "destruct" << std::endl;
+   // std::cout << "destruct" << std::endl;
 
    close();
 }
 
 void WEBTRAFFICPlugin::init(const char *params)
 {
-   std::cout << "init" << std::endl;
+   // std::cout << "init" << std::endl;
    manager = new WebtrafficRequestManager();
 }
 
 void WEBTRAFFICPlugin::close()
 {
-   std::cout << "close" << std::endl;
+   // std::cout << "close" << std::endl;
 
    if (manager != nullptr){
       delete manager;
@@ -96,14 +96,14 @@ void WEBTRAFFICPlugin::close()
 
 ProcessPlugin *WEBTRAFFICPlugin::copy()
 {
-   std::cout << "copy" << std::endl;
+   // std::cout << "copy" << std::endl;
 
    return new WEBTRAFFICPlugin(*this);
 }
 
 void WEBTRAFFICPlugin::pre_export(Flow &rec)
 {
-   std::cout << "pre_export" << std::endl;
+   // std::cout << "pre_export" << std::endl;
 
    // tady prekroutim flow data na to co potrebuju:
    WebtrafficRequestData data(rec);
@@ -145,12 +145,12 @@ WebtrafficRequestData::WebtrafficRequestData(Flow &rec)
 
 WebtrafficRequestManager::WebtrafficRequestManager()
 {
-   std::cout << "Request Manager ctor" << std::endl;
+   // std::cout << "Request Manager ctor" << std::endl;
 }
 
 WebtrafficRequestManager::~WebtrafficRequestManager()
 {
-   std::cout << "Request Manager dtor" << std::endl;
+   // std::cout << "Request Manager dtor" << std::endl;
    close(sockFd);
    sockFd = 0;
 }
@@ -179,7 +179,7 @@ void WebtrafficRequestManager::connectToDispatcher(int port)
 void WebtrafficRequestManager::readInfoAboutWebTraffic(WebtrafficRequestData &data)
 {
    // connect 
-   connectToDispatcher(50555);
+   connectToDispatcher(50559);
 
    // construct request
    json newRequest;
@@ -191,13 +191,14 @@ void WebtrafficRequestManager::readInfoAboutWebTraffic(WebtrafficRequestData &da
 
    // transfer json request to data
    auto response_string = newRequest.dump();
-   int32_t payload_data_size = response_string.length();
+   uint32_t payload_data_size = response_string.length();
    size_t total_payload_size = 4 + payload_data_size;
 
    char payload[total_payload_size];
    memset(payload, '\0', total_payload_size);
 
-   memcpy(payload, (u_char *)&payload_data_size, 4);
+   auto nbo = htonl(payload_data_size);
+   memcpy(payload, &nbo, 4);
    memcpy(payload+4, response_string.data(), response_string.length());
   
    // send it!
@@ -207,24 +208,41 @@ void WebtrafficRequestManager::readInfoAboutWebTraffic(WebtrafficRequestData &da
 
    // read response
    size_t response_len = 0;
-   u_char len_buffer[4];
+   uint32_t len_buffer;
 
-   response_len = recv(sockFd, len_buffer, 4, 0);
+   response_len = recv(sockFd, &len_buffer, 4, 0);
    if (response_len == -1){
       throw std::runtime_error("Webtrafic: Failed to receive response length.");
    }
 
-   auto response_json_len = (uint32_t)*len_buffer;
-   char response_json[response_json_len];
-   memset(response_json, '\0', response_json_len);
+   auto messageSize = ntohl(len_buffer);
+   char response_json[messageSize];
+   memset(response_json, '\0', messageSize);
 
-   recv(sockFd, response_json, response_json_len, 0);
+   int dataLen = 0;
+   while (dataLen != messageSize){
+      auto recvLen = recv(sockFd, response_json+dataLen, messageSize-dataLen, 0);
 
-   json response = json::parse(std::string(response_json, response_json_len));
+      if (recvLen == -1){
+         throw std::runtime_error("Webtraffic: Error while reading response");
+      }
 
-   std::cout << response.dump() << std::endl;
+      dataLen += recvLen;
+   }
 
+   json response = json::parse(std::string(response_json, messageSize));
 
+   if (!response["serverNameIndication"].empty() && !response["httpRequests"].is_null()){
+      std::cout << response["serverNameIndication"].get<std::string>() << std::endl;
+      succ++;
+   } else {
+      failed++;
+   }
+   auto rate = (float(succ) / (float(succ) + float(failed))) * 100;
+
+   std::cout << "rate: " << rate << "% [succ:" << succ << ", failed: "<< failed << "]" << std::endl;
+
+   close(sockFd);
 }
 
 }
