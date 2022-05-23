@@ -232,8 +232,8 @@ void WebtrafficRequestManager::readInfoAboutWebTraffic(WebtrafficRequestData &da
 
    json response = json::parse(std::string(response_json, messageSize));
 
-   if (!response["serverNameIndication"].empty() && !response["httpRequests"].is_null()){
-      std::cout << response["serverNameIndication"].get<std::string>() << std::endl;
+   if (!response.empty() && !response["communication"].is_null()){
+      std::cout << response["communication"].size() << "  "  << std::endl;
       succ++;
    } else {
       failed++;
